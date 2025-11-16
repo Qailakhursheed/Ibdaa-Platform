@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعلانات - منصة إبداع</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        
+        .announcement-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .announcement-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .announcement-card:hover::before {
+            left: 100%;
+        }
+        
+        .announcement-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+        }
+        
+        .watermark {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            opacity: 0.25;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        .badge-new {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .priority-high {
+            border-right: 6px solid #ef4444;
+        }
+        
+        .priority-medium {
+            border-right: 6px solid #f59e0b;
+        }
+        
+        .priority-low {
+            border-right: 6px solid #3b82f6;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 min-h-screen">
+
+    <!-- الهيدر -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center gap-3 font-bold text-2xl text-indigo-700 hover:text-indigo-900 transition">
+                <img src="photos/Sh.jpg" alt="شعار منصة إبداع" class="h-12 w-12 rounded-full shadow-md">
+                <span>منصة إبداع</span>
+            </a>
+            <div class="flex gap-4">
+                <a href="courses.html" class="text-indigo-600 hover:text-indigo-800 transition">الدورات</a>
+                <a href="index.html" class="bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
+                    الرئيسية
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        
+        <!-- الهيرو -->
+        <div class="text-center mb-12">
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-12 shadow-2xl">
+                <div class="flex items-center justify-center gap-4 mb-4">
+                    <i data-lucide="megaphone" class="w-16 h-16"></i>
+                    <h1 class="text-5xl font-black">الإعلانات والأخبار 📢</h1>
+                </div>
+                <p class="text-xl text-indigo-100 max-w-3xl mx-auto">
+                    تابع آخر الأخبار والإعلانات المهمة من منصة إبداع للتدريب والتأهيل
+                </p>
+            </div>
+        </div>
+
+        <!-- الفلاتر -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-12">
+            <div class="flex flex-wrap gap-3 items-center">
+                <p class="font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="filter" class="w-5 h-5 text-indigo-600"></i>
+                    تصفية:
+                </p>
+                <button class="filter-btn active px-6 py-3 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition font-semibold" data-filter="all">
+                    الكل
+                </button>
+                <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="important">
+                    🔴 مهم
+                </button>
+                <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="event">
+                    📅 فعاليات
+                </button>
+                <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="course">
+                    📚 دورات
+                </button>
+                <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="news">
+                    🗞️ أخبار
+                </button>
+            </div>
+        </div>
+
+        <!-- الإعلانات -->
+        <div id="announcementsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            <!-- إعلان 1 - مهم -->
+            <div class="announcement-card bg-white rounded-2xl shadow-xl overflow-hidden priority-high" data-category="important" data-priority="high">
+                <div class="relative h-48 bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center">
+                    <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
+                    <i data-lucide="alert-circle" class="w-20 h-20 text-white"></i>
+                    <span class="badge-new absolute top-4 left-4 bg-red-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                        🔥 عاجل
+                    </span>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm text-gray-500 flex items-center gap-1">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            2025-01-13
+                        </span>
+                        <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                            مهم جداً
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">آخر موعد للتسجيل في دورة ICDL</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        ينتهي التسجيل في دورة الرخصة الدولية ICDL يوم الخميس القادم. سارع بالتسجيل الآن!
+                    </p>
+                    <button onclick="showDetails(1)" class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition font-semibold">
+                        عرض التفاصيل
+                    </button>
+                </div>
+            </div>
+
+            <!-- إعلان 2 - فعالية -->
+            <div class="announcement-card bg-white rounded-2xl shadow-xl overflow-hidden priority-medium" data-category="event" data-priority="medium">
+                <div class="relative h-48 bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                    <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
+                    <i data-lucide="calendar-days" class="w-20 h-20 text-white"></i>
+                    <span class="badge-new absolute top-4 left-4 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                        🎉 جديد
+                    </span>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm text-gray-500 flex items-center gap-1">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            2025-01-20
+                        </span>
+                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
+                            فعالية
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">يوم مفتوح للتعريف بالمنصة</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        ندعوكم لحضور اليوم المفتوح يوم السبت للتعرف على برامجنا التدريبية وفريق العمل.
+                    </p>
+                    <button onclick="showDetails(2)" class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
+                        عرض التفاصيل
+                    </button>
+                </div>
+            </div>
+
+            <!-- إعلان 3 - دورة -->
+            <div class="announcement-card bg-white rounded-2xl shadow-xl overflow-hidden priority-low" data-category="course" data-priority="low">
+                <div class="relative h-48 bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                    <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
+                    <i data-lucide="book-open" class="w-20 h-20 text-white"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm text-gray-500 flex items-center gap-1">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            2025-02-01
+                        </span>
+                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                            دورة جديدة
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">بدء التسجيل في دورة Excel المتقدم</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        انطلاق التسجيل في دورة Excel المتقدم وتحليل البيانات. عدد المقاعد محدود!
+                    </p>
+                    <button onclick="showDetails(3)" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        عرض التفاصيل
+                    </button>
+                </div>
+            </div>
+
+            <!-- إعلان 4 - أخبار -->
+            <div class="announcement-card bg-white rounded-2xl shadow-xl overflow-hidden priority-low" data-category="news" data-priority="low">
+                <div class="relative h-48 bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                    <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
+                    <i data-lucide="trophy" class="w-20 h-20 text-white"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm text-gray-500 flex items-center gap-1">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            2025-01-10
+                        </span>
+                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                            إنجاز
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">تخرج 50 متدرب من دورة ICDL</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        نهنئ 50 متدرب بإتمام دورة ICDL بنجاح والحصول على الشهادة الدولية المعتمدة.
+                    </p>
+                    <button onclick="showDetails(4)" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                        عرض التفاصيل
+                    </button>
+                </div>
+            </div>
+
+            <!-- إعلان 5 - فعالية -->
+            <div class="announcement-card bg-white rounded-2xl shadow-xl overflow-hidden priority-medium" data-category="event" data-priority="medium">
+                <div class="relative h-48 bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center">
+                    <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
+                    <i data-lucide="presentation" class="w-20 h-20 text-white"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm text-gray-500 flex items-center gap-1">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            2025-01-25
+                        </span>
+                        <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
+                            ورشة عمل
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">ورشة عمل: مهارات البحث عن عمل</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        ورشة عمل مجانية عن كيفية كتابة السيرة الذاتية والتحضير لمقابلات العمل.
+                    </p>
+                    <button onclick="showDetails(5)" class="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition font-semibold">
+                        عرض التفاصيل
+                    </button>
+                </div>
+            </div>
+
+            <!-- إعلان 6 - أخبار -->
+            <div class="announcement-card bg-white rounded-2xl shadow-xl overflow-hidden priority-low" data-category="news" data-priority="low">
+                <div class="relative h-48 bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+                    <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
+                    <i data-lucide="gift" class="w-20 h-20 text-white"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm text-gray-500 flex items-center gap-1">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            2025-01-15
+                        </span>
+                        <span class="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-xs font-bold">
+                            عرض خاص
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">خصم 20% على جميع الدورات</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        عرض خاص لفترة محدودة! خصم 20% على جميع الدورات التدريبية. لا تفوت الفرصة!
+                    </p>
+                    <button onclick="showDetails(6)" class="w-full bg-pink-600 text-white py-3 rounded-lg hover:bg-pink-700 transition font-semibold">
+                        عرض التفاصيل
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal للتفاصيل -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-2xl mx-4 overflow-hidden">
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-8">
+                <div class="flex justify-between items-start">
+                    <h2 class="text-3xl font-bold" id="modalTitle">عنوان الإعلان</h2>
+                    <button onclick="closeModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-8">
+                <div id="modalContent" class="text-gray-700 leading-relaxed text-lg"></div>
+                <div class="mt-8 flex gap-4">
+                    <button onclick="closeModal()" class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">
+                        إغلاق
+                    </button>
+                    <a href="application.php" class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition font-semibold text-center">
+                        سجل الآن
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer class="bg-gray-900 text-white py-8 mt-20">
+        <div class="container mx-auto px-6 text-center">
+            <img src="photos/Sh.jpg" alt="شعار إبداع" class="h-16 w-16 rounded-full mx-auto mb-4 border-2 border-white">
+            <p class="text-lg font-semibold mb-2">منصة إبداع للتدريب والتأهيل</p>
+            <p class="text-gray-400">📧 info@ibdaa-platform.com | 📱 +967 123 456 789</p>
+            <p class="text-gray-500 text-sm mt-4">© 2025 جميع الحقوق محفوظة</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        
+        // نظام الفلترة
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const announcements = document.querySelectorAll('.announcement-card');
+        
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // تحديث الأزرار
+                filterButtons.forEach(b => {
+                    b.classList.remove('active', 'bg-indigo-600', 'text-white');
+                    b.classList.add('border-2', 'border-indigo-200');
+                });
+                this.classList.add('active', 'bg-indigo-600', 'text-white');
+                this.classList.remove('border-2', 'border-indigo-200');
+                
+                // فلترة الإعلانات
+                const filter = this.dataset.filter;
+                announcements.forEach(announcement => {
+                    if (filter === 'all' || announcement.dataset.category === filter) {
+                        announcement.style.display = 'block';
+                        setTimeout(() => {
+                            announcement.style.opacity = '1';
+                            announcement.style.transform = 'translateY(0)';
+                        }, 50);
+                    } else {
+                        announcement.style.opacity = '0';
+                        announcement.style.transform = 'translateY(20px)';
+                        setTimeout(() => {
+                            announcement.style.display = 'none';
+                        }, 300);
+                    }
+                });
+            });
+        });
+        
+        // تفاصيل الإعلانات
+        const announcementsData = {
+            1: {
+                title: 'آخر موعد للتسجيل في دورة ICDL',
+                content: `
+                    <p class="mb-4"><strong>📅 الموعد النهائي:</strong> الخميس 18 يناير 2025</p>
+                    <p class="mb-4">هذه فرصتك الأخيرة للتسجيل في دورة الرخصة الدولية لقيادة الحاسوب (ICDL). الدورة تبدأ يوم السبت 20 يناير.</p>
+                    <p class="mb-4"><strong>🎯 ماذا ستتعلم:</strong></p>
+                    <ul class="list-disc list-inside mb-4 space-y-2">
+                        <li>أساسيات الحاسوب ونظام Windows</li>
+                        <li>معالجة النصوص (Microsoft Word)</li>
+                        <li>الجداول الإلكترونية (Microsoft Excel)</li>
+                        <li>العروض التقديمية (PowerPoint)</li>
+                        <li>الإنترنت والبريد الإلكتروني</li>
+                    </ul>
+                    <p class="mb-4"><strong>💰 الرسوم:</strong> 50,000 ريال يمني (بدلاً من 70,000)</p>
+                    <p class="font-bold text-red-600">⏰ التسجيل ينتهي خلال 5 أيام فقط!</p>
+                `
+            },
+            2: {
+                title: 'يوم مفتوح للتعريف بالمنصة',
+                content: `
+                    <p class="mb-4"><strong>📅 التاريخ:</strong> السبت 20 يناير 2025</p>
+                    <p class="mb-4"><strong>⏰ الوقت:</strong> من 9 صباحاً حتى 4 مساءً</p>
+                    <p class="mb-4">ندعوك لزيارة منصة إبداع والتعرف على:</p>
+                    <ul class="list-disc list-inside mb-4 space-y-2">
+                        <li>جولة في مرافق المنصة ومعامل الحاسوب</li>
+                        <li>لقاء مع المدربين والكادر التعليمي</li>
+                        <li>عروض توضيحية حية للدورات التدريبية</li>
+                        <li>استشارات مجانية عن المسار التدريبي المناسب</li>
+                        <li>خصومات خاصة للتسجيل في نفس اليوم</li>
+                    </ul>
+                    <p class="font-bold text-purple-600">🎁 مفاجآت وجوائز للحضور!</p>
+                `
+            },
+            3: {
+                title: 'بدء التسجيل في دورة Excel المتقدم',
+                content: `
+                    <p class="mb-4"><strong>📅 تاريخ البدء:</strong> 1 فبراير 2025</p>
+                    <p class="mb-4"><strong>⏱️ المدة:</strong> 6 أسابيع (24 ساعة تدريبية)</p>
+                    <p class="mb-4">دورة شاملة في Excel المتقدم وتحليل البيانات:</p>
+                    <ul class="list-disc list-inside mb-4 space-y-2">
+                        <li>الصيغ والدوال المتقدمة (VLOOKUP, INDEX, MATCH)</li>
+                        <li>الجداول المحورية (Pivot Tables)</li>
+                        <li>لوحات المعلومات التفاعلية (Dashboards)</li>
+                        <li>تحليل البيانات باستخدام Power Query</li>
+                        <li>الرسوم البيانية الاحترافية</li>
+                    </ul>
+                    <p class="mb-4"><strong>👨‍🏫 المدرب:</strong> أ. محمد أحمد (خبرة 10 سنوات)</p>
+                    <p class="mb-4"><strong>💰 الرسوم:</strong> 40,000 ريال يمني</p>
+                    <p class="font-bold text-blue-600">📌 عدد المقاعد محدود: 20 مقعداً فقط!</p>
+                `
+            },
+            4: {
+                title: 'تخرج 50 متدرب من دورة ICDL',
+                content: `
+                    <p class="mb-4">في حفل بهيج، احتفلت منصة إبداع بتخريج 50 متدرباً من دورة الرخصة الدولية ICDL.</p>
+                    <p class="mb-4"><strong>🎓 إحصائيات النجاح:</strong></p>
+                    <ul class="list-disc list-inside mb-4 space-y-2">
+                        <li>نسبة النجاح: 96%</li>
+                        <li>10 متدربين حصلوا على درجة امتياز</li>
+                        <li>جميع المتدربين حصلوا على الشهادة الدولية المعتمدة</li>
+                    </ul>
+                    <p class="mb-4">نهنئ جميع الخريجين ونتمنى لهم التوفيق في مسيرتهم المهنية!</p>
+                    <p class="font-bold text-green-600">📸 شاهد صور الحفل في معرض الصور</p>
+                `
+            },
+            5: {
+                title: 'ورشة عمل: مهارات البحث عن عمل',
+                content: `
+                    <p class="mb-4"><strong>📅 التاريخ:</strong> الأربعاء 25 يناير 2025</p>
+                    <p class="mb-4"><strong>⏰ الوقت:</strong> 10 صباحاً - 2 ظهراً</p>
+                    <p class="mb-4"><strong>📍 المكان:</strong> قاعة التدريب الرئيسية</p>
+                    <p class="mb-4">ورشة عمل مجانية تشمل:</p>
+                    <ul class="list-disc list-inside mb-4 space-y-2">
+                        <li>كيفية كتابة سيرة ذاتية احترافية</li>
+                        <li>التحضير لمقابلات العمل</li>
+                        <li>استخدام LinkedIn للبحث عن فرص</li>
+                        <li>مهارات التواصل في بيئة العمل</li>
+                        <li>نصائح من خبراء الموارد البشرية</li>
+                    </ul>
+                    <p class="mb-4"><strong>🎤 المتحدثون:</strong></p>
+                    <ul class="list-disc list-inside mb-4">
+                        <li>أ. فاطمة أحمد - خبيرة موارد بشرية</li>
+                        <li>م. عبدالله محمد - مدير توظيف</li>
+                    </ul>
+                    <p class="font-bold text-orange-600">✅ الحضور مجاني - سجل الآن!</p>
+                `
+            },
+            6: {
+                title: 'خصم 20% على جميع الدورات',
+                content: `
+                    <p class="mb-4"><strong>🎉 عرض خاص لفترة محدودة!</strong></p>
+                    <p class="mb-4"><strong>📅 الفترة:</strong> من 15 يناير حتى 31 يناير 2025</p>
+                    <p class="mb-4">احصل على خصم 20% على جميع دوراتنا التدريبية:</p>
+                    <ul class="list-disc list-inside mb-4 space-y-2">
+                        <li>دورة ICDL: 56,000 ريال بدلاً من 70,000</li>
+                        <li>دبلوم الحاسوب: 80,000 ريال بدلاً من 100,000</li>
+                        <li>Excel المتقدم: 32,000 ريال بدلاً من 40,000</li>
+                        <li>اللغة الإنجليزية: 40,000 ريال بدلاً من 50,000</li>
+                    </ul>
+                    <p class="mb-4"><strong>💡 شروط العرض:</strong></p>
+                    <ul class="list-disc list-inside mb-4">
+                        <li>العرض ساري على التسجيل والدفع خلال الفترة المحددة</li>
+                        <li>لا يمكن دمج هذا العرض مع عروض أخرى</li>
+                        <li>العرض متاح لجميع الطلاب الجدد والحاليين</li>
+                    </ul>
+                    <p class="font-bold text-pink-600">⏰ لم يتبق سوى أسبوعين - سارع بالتسجيل!</p>
+                `
+            }
+        };
+        
+        function showDetails(id) {
+            const data = announcementsData[id];
+            document.getElementById('modalTitle').textContent = data.title;
+            document.getElementById('modalContent').innerHTML = data.content;
+            document.getElementById('detailsModal').classList.add('active');
+            lucide.createIcons();
+        }
+        
+        function closeModal() {
+            document.getElementById('detailsModal').classList.remove('active');
+        }
+        
+        // إغلاق عند الضغط خارج المودال
+        document.getElementById('detailsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

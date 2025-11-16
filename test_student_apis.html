@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student APIs Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-card { transition: all 0.3s; }
+        .test-card:hover { transform: translateY(-2px); }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .loading { color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-slate-50 p-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">اختبار Student Dashboard APIs</h1>
+            <p class="text-slate-600">اختبار شامل لجميع نقاط API للطالب</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 1. Courses API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">📚 Courses API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('courses', 'list')" class="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">
+                        اختبار قائمة الدورات
+                    </button>
+                    <button onclick="testAPI('courses', 'details')" class="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">
+                        اختبار تفاصيل دورة
+                    </button>
+                    <button onclick="testAPI('courses', 'statistics')" class="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">
+                        اختبار الإحصائيات
+                    </button>
+                </div>
+                <div id="result-courses" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+
+            <!-- 2. Grades API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">📊 Grades API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('grades', 'list')" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                        اختبار قائمة الدرجات
+                    </button>
+                    <button onclick="testAPI('grades', 'gpa')" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                        اختبار GPA
+                    </button>
+                    <button onclick="testAPI('grades', 'trend')" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                        اختبار GPA Trend
+                    </button>
+                </div>
+                <div id="result-grades" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+
+            <!-- 3. Attendance API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">✅ Attendance API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('attendance', 'list')" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        اختبار سجل الحضور
+                    </button>
+                    <button onclick="testAPI('attendance', 'summary')" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        اختبار ملخص الحضور
+                    </button>
+                    <button onclick="testAPI('attendance', 'chart')" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        اختبار بيانات الرسم البياني
+                    </button>
+                </div>
+                <div id="result-attendance" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+
+            <!-- 4. Assignments API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">📝 Assignments API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('assignments', 'list')" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                        اختبار قائمة الواجبات
+                    </button>
+                    <button onclick="testAPI('assignments', 'details')" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                        اختبار تفاصيل واجب
+                    </button>
+                </div>
+                <div id="result-assignments" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+
+            <!-- 5. Materials API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">📁 Materials API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('materials', 'list')" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        اختبار قائمة المواد
+                    </button>
+                    <button onclick="testAPI('materials', 'statistics')" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        اختبار إحصائيات المواد
+                    </button>
+                </div>
+                <div id="result-materials" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+
+            <!-- 6. Schedule API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">📅 Schedule API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('schedule', 'weekly')" class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+                        اختبار الجدول الأسبوعي
+                    </button>
+                    <button onclick="testAPI('schedule', 'today')" class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+                        اختبار محاضرات اليوم
+                    </button>
+                    <button onclick="testAPI('schedule', 'upcoming')" class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+                        اختبار القادمة
+                    </button>
+                </div>
+                <div id="result-schedule" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+
+            <!-- 7. ID Card API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">🪪 ID Card API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('id_card', 'info')" class="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700">
+                        اختبار معلومات البطاقة
+                    </button>
+                    <button onclick="testAPI('id_card', 'download')" class="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700">
+                        اختبار تحميل البطاقة
+                    </button>
+                </div>
+                <div id="result-id_card" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+
+            <!-- 8. Payments API -->
+            <div class="test-card bg-white rounded-xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">💳 Payments API</h3>
+                <div class="space-y-2">
+                    <button onclick="testAPI('payments', 'list')" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        اختبار قائمة المدفوعات
+                    </button>
+                    <button onclick="testAPI('payments', 'balance')" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        اختبار الرصيد
+                    </button>
+                    <button onclick="testAPI('payments', 'outstanding')" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        اختبار الفواتير المستحقة
+                    </button>
+                </div>
+                <div id="result-payments" class="mt-4 p-3 bg-slate-50 rounded-lg text-sm font-mono overflow-auto max-h-48"></div>
+            </div>
+        </div>
+
+        <!-- Test All Button -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
+            <button onclick="testAllAPIs()" class="w-full px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:from-amber-700 hover:to-orange-700 font-bold text-lg">
+                🧪 اختبار جميع APIs
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'Manager/api/';
+        
+        async function testAPI(apiName, action) {
+            const resultDiv = document.getElementById(`result-${apiName}`);
+            resultDiv.innerHTML = '<span class="loading">⏳ جاري الاختبار...</span>';
+            
+            let url = '';
+            
+            switch(apiName) {
+                case 'courses':
+                    if (action === 'list') url = `${API_BASE}student_courses.php?action=list`;
+                    else if (action === 'details') url = `${API_BASE}student_courses.php?action=details&course_id=1`;
+                    else if (action === 'statistics') url = `${API_BASE}student_courses.php?action=statistics`;
+                    break;
+                    
+                case 'grades':
+                    if (action === 'list') url = `${API_BASE}student_grades.php?action=list`;
+                    else if (action === 'gpa') url = `${API_BASE}student_grades.php?action=gpa`;
+                    else if (action === 'trend') url = `${API_BASE}student_grades.php?action=trend`;
+                    break;
+                    
+                case 'attendance':
+                    if (action === 'list') url = `${API_BASE}student_attendance.php?action=list`;
+                    else if (action === 'summary') url = `${API_BASE}student_attendance.php?action=summary`;
+                    else if (action === 'chart') url = `${API_BASE}student_attendance.php?action=monthly_chart`;
+                    break;
+                    
+                case 'assignments':
+                    if (action === 'list') url = `${API_BASE}student_assignments.php?action=list`;
+                    else if (action === 'details') url = `${API_BASE}student_assignments.php?action=details&assignment_id=1`;
+                    break;
+                    
+                case 'materials':
+                    if (action === 'list') url = `${API_BASE}student_materials.php?action=list&course_id=1`;
+                    else if (action === 'statistics') url = `${API_BASE}student_materials.php?action=statistics`;
+                    break;
+                    
+                case 'schedule':
+                    if (action === 'weekly') url = `${API_BASE}student_schedule.php?action=weekly`;
+                    else if (action === 'today') url = `${API_BASE}student_schedule.php?action=today`;
+                    else if (action === 'upcoming') url = `${API_BASE}student_schedule.php?action=upcoming`;
+                    break;
+                    
+                case 'id_card':
+                    if (action === 'info') url = `${API_BASE}student_id_card.php?action=info`;
+                    else if (action === 'download') url = `${API_BASE}student_id_card.php?action=download&format=pdf`;
+                    break;
+                    
+                case 'payments':
+                    if (action === 'list') url = `${API_BASE}student_payments.php?action=list`;
+                    else if (action === 'balance') url = `${API_BASE}student_payments.php?action=balance`;
+                    else if (action === 'outstanding') url = `${API_BASE}student_payments.php?action=outstanding`;
+                    break;
+            }
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `<span class="success">✅ نجح</span>\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ فشل</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ خطأ</span>\n${error.message}`;
+            }
+        }
+        
+        async function testAllAPIs() {
+            // Test all APIs sequentially
+            const tests = [
+                ['courses', 'list'],
+                ['courses', 'statistics'],
+                ['grades', 'list'],
+                ['grades', 'gpa'],
+                ['attendance', 'list'],
+                ['attendance', 'summary'],
+                ['assignments', 'list'],
+                ['materials', 'statistics'],
+                ['schedule', 'weekly'],
+                ['id_card', 'info'],
+                ['payments', 'list'],
+                ['payments', 'balance']
+            ];
+            
+            for (const [api, action] of tests) {
+                await testAPI(api, action);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            alert('✅ اكتمل اختبار جميع APIs!');
+        }
+    </script>
+</body>
+</html>

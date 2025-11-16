@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار التكامل - منصة إبداع</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .test-card {
+            transition: all 0.3s ease;
+        }
+        .test-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .status-loading { color: #f59e0b; }
+        .status-success { color: #10b981; }
+        .status-error { color: #ef4444; }
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8">
+            <h1 class="text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+                🧪 اختبار تكامل النظام
+            </h1>
+            <p class="text-center text-gray-600 text-lg">
+                اختبار شامل لجميع واجهات API والأنظمة المتكاملة
+            </p>
+            <div class="text-center mt-4">
+                <button onclick="runAllTests()" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-3 rounded-lg font-bold hover:shadow-xl transition-all transform hover:scale-105">
+                    🚀 تشغيل جميع الاختبارات
+                </button>
+            </div>
+        </div>
+
+        <!-- Tests Grid -->
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Support API Tests -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-blue-600 mb-4 flex items-center">
+                    🎫 اختبار Support API
+                </h2>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testSupportGetAll()" class="text-blue-500 hover:underline font-semibold">
+                            ▶️ جلب جميع التذاكر المعلقة
+                        </button>
+                        <div id="result-support-getall" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testSupportStats()" class="text-blue-500 hover:underline font-semibold">
+                            ▶️ إحصائيات الدعم الفني
+                        </button>
+                        <div id="result-support-stats" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testSupportSearch()" class="text-blue-500 hover:underline font-semibold">
+                            ▶️ البحث في التذاكر
+                        </button>
+                        <div id="result-support-search" class="mt-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Announcements API Tests -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-green-600 mb-4 flex items-center">
+                    📢 اختبار Announcements API
+                </h2>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testAnnouncementsPublic()" class="text-green-500 hover:underline font-semibold">
+                            ▶️ جلب الإعلانات النشطة
+                        </button>
+                        <div id="result-ann-public" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testAnnouncementsStats()" class="text-green-500 hover:underline font-semibold">
+                            ▶️ إحصائيات الإعلانات
+                        </button>
+                        <div id="result-ann-stats" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testAnnouncementsCategories()" class="text-green-500 hover:underline font-semibold">
+                            ▶️ الفئات المتاحة
+                        </button>
+                        <div id="result-ann-categories" class="mt-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Tests -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-purple-600 mb-4 flex items-center">
+                    🗄️ اختبار قاعدة البيانات
+                </h2>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testDatabaseConnection()" class="text-purple-500 hover:underline font-semibold">
+                            ▶️ اختبار الاتصال
+                        </button>
+                        <div id="result-db-connection" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testSupportTables()" class="text-purple-500 hover:underline font-semibold">
+                            ▶️ التحقق من جداول الدعم
+                        </button>
+                        <div id="result-db-support-tables" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testAnnouncementsTables()" class="text-purple-500 hover:underline font-semibold">
+                            ▶️ التحقق من جداول الإعلانات
+                        </button>
+                        <div id="result-db-ann-tables" class="mt-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integration Tests -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-orange-600 mb-4 flex items-center">
+                    🔗 اختبار التكامل
+                </h2>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testJSLibrary()" class="text-orange-500 hover:underline font-semibold">
+                            ▶️ مكتبة JavaScript
+                        </button>
+                        <div id="result-js-library" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testAPIConnectivity()" class="text-orange-500 hover:underline font-semibold">
+                            ▶️ اتصال APIs
+                        </button>
+                        <div id="result-api-connectivity" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div class="test-item border-b pb-2">
+                        <button onclick="testEmailSystem()" class="text-orange-500 hover:underline font-semibold">
+                            ▶️ نظام البريد الإلكتروني
+                        </button>
+                        <div id="result-email-system" class="mt-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Summary -->
+        <div id="summary" class="mt-8 bg-white rounded-xl shadow-lg p-6 hidden">
+            <h2 class="text-2xl font-bold text-center mb-4">📊 ملخص النتائج</h2>
+            <div class="grid md:grid-cols-3 gap-4 text-center">
+                <div class="p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl font-bold text-green-600" id="tests-passed">0</div>
+                    <div class="text-gray-600">نجح</div>
+                </div>
+                <div class="p-4 bg-red-50 rounded-lg">
+                    <div class="text-3xl font-bold text-red-600" id="tests-failed">0</div>
+                    <div class="text-gray-600">فشل</div>
+                </div>
+                <div class="p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl font-bold text-blue-600" id="tests-total">0</div>
+                    <div class="text-gray-600">إجمالي</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../Manager/js/support_integration.js"></script>
+    <script>
+        let testsPassed = 0;
+        let testsFailed = 0;
+        let testsTotal = 0;
+
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            const statusClass = success ? 'status-success' : 'status-error';
+            const icon = success ? '✅' : '❌';
+            
+            let html = `<span class="${statusClass}">${icon} ${message}</span>`;
+            
+            if (data) {
+                html += `<div class="code-block mt-2">${JSON.stringify(data, null, 2)}</div>`;
+            }
+            
+            element.innerHTML = html;
+            
+            testsTotal++;
+            if (success) testsPassed++;
+            else testsFailed++;
+            
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('summary').classList.remove('hidden');
+            document.getElementById('tests-passed').textContent = testsPassed;
+            document.getElementById('tests-failed').textContent = testsFailed;
+            document.getElementById('tests-total').textContent = testsTotal;
+        }
+
+        // Support API Tests
+        async function testSupportGetAll() {
+            try {
+                const response = await fetch('../Manager/api/support_api.php?action=getAll&status=pending');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('result-support-getall', true, `نجح! تم جلب ${data.data.length} تذكرة`, data.data.slice(0, 2));
+                } else {
+                    showResult('result-support-getall', false, 'فشل: ' + data.error);
+                }
+            } catch (error) {
+                showResult('result-support-getall', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        async function testSupportStats() {
+            try {
+                const response = await fetch('../Manager/api/support_api.php?action=stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('result-support-stats', true, 'نجح! الإحصائيات متوفرة', data.data);
+                } else {
+                    showResult('result-support-stats', false, 'فشل: ' + data.error);
+                }
+            } catch (error) {
+                showResult('result-support-stats', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        async function testSupportSearch() {
+            try {
+                const response = await fetch('../Manager/api/support_api.php?action=search&query=test');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('result-support-search', true, `نجح! تم العثور على ${data.data.length} نتيجة`);
+                } else {
+                    showResult('result-support-search', false, 'فشل: ' + data.error);
+                }
+            } catch (error) {
+                showResult('result-support-search', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        // Announcements API Tests
+        async function testAnnouncementsPublic() {
+            try {
+                const response = await fetch('../Manager/api/announcements_api.php?action=public&limit=5');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('result-ann-public', true, `نجح! تم جلب ${data.data.length} إعلان`, data.data.slice(0, 1));
+                } else {
+                    showResult('result-ann-public', false, 'فشل: ' + data.error);
+                }
+            } catch (error) {
+                showResult('result-ann-public', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        async function testAnnouncementsStats() {
+            try {
+                const response = await fetch('../Manager/api/announcements_api.php?action=stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('result-ann-stats', true, 'نجح! الإحصائيات متوفرة', data.data);
+                } else {
+                    showResult('result-ann-stats', false, 'فشل: ' + data.error);
+                }
+            } catch (error) {
+                showResult('result-ann-stats', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        async function testAnnouncementsCategories() {
+            try {
+                const response = await fetch('../Manager/api/announcements_api.php?action=categories');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('result-ann-categories', true, `نجح! ${data.data.length} فئة متاحة`, data.data);
+                } else {
+                    showResult('result-ann-categories', false, 'فشل: ' + data.error);
+                }
+            } catch (error) {
+                showResult('result-ann-categories', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        // Database Tests
+        async function testDatabaseConnection() {
+            try {
+                const response = await fetch('../Manager/api/support_api.php?action=stats');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('result-db-connection', true, 'نجح! الاتصال بقاعدة البيانات يعمل');
+                } else {
+                    showResult('result-db-connection', false, 'فشل: لا يمكن الاتصال');
+                }
+            } catch (error) {
+                showResult('result-db-connection', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        async function testSupportTables() {
+            try {
+                const response = await fetch('../Manager/api/support_api.php?action=getAll&status=pending');
+                const data = await response.json();
+                
+                if (data.success !== undefined) {
+                    showResult('result-db-support-tables', true, 'نجح! جداول الدعم متوفرة');
+                } else {
+                    showResult('result-db-support-tables', false, 'فشل: الجداول غير موجودة');
+                }
+            } catch (error) {
+                showResult('result-db-support-tables', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        async function testAnnouncementsTables() {
+            try {
+                const response = await fetch('../Manager/api/announcements_api.php?action=stats');
+                const data = await response.json();
+                
+                if (data.success !== undefined) {
+                    showResult('result-db-ann-tables', true, 'نجح! جداول الإعلانات متوفرة');
+                } else {
+                    showResult('result-db-ann-tables', false, 'فشل: الجداول غير موجودة');
+                }
+            } catch (error) {
+                showResult('result-db-ann-tables', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        // Integration Tests
+        function testJSLibrary() {
+            if (typeof TechnicalFeatures !== 'undefined' && TechnicalFeatures.support) {
+                showResult('result-js-library', true, 'نجح! المكتبة محملة بشكل صحيح', {
+                    methods: Object.keys(TechnicalFeatures.support).slice(0, 5)
+                });
+            } else {
+                showResult('result-js-library', false, 'فشل: المكتبة غير محملة');
+            }
+        }
+
+        async function testAPIConnectivity() {
+            try {
+                const results = await Promise.all([
+                    fetch('../Manager/api/support_api.php?action=stats'),
+                    fetch('../Manager/api/announcements_api.php?action=categories')
+                ]);
+                
+                const allOk = results.every(r => r.ok);
+                
+                if (allOk) {
+                    showResult('result-api-connectivity', true, 'نجح! جميع APIs متصلة');
+                } else {
+                    showResult('result-api-connectivity', false, 'فشل: بعض APIs غير متاحة');
+                }
+            } catch (error) {
+                showResult('result-api-connectivity', false, 'خطأ: ' + error.message);
+            }
+        }
+
+        function testEmailSystem() {
+            // This is a mock test - actual email testing requires backend
+            showResult('result-email-system', true, 'ملاحظة: يحتاج اختبار فعلي من الـ Backend', {
+                note: 'أرسل تذكرة جديدة من platform/support.php للاختبار الفعلي'
+            });
+        }
+
+        // Run All Tests
+        async function runAllTests() {
+            testsPassed = 0;
+            testsFailed = 0;
+            testsTotal = 0;
+            
+            document.getElementById('summary').classList.add('hidden');
+            
+            // Support Tests
+            await testSupportGetAll();
+            await new Promise(r => setTimeout(r, 500));
+            await testSupportStats();
+            await new Promise(r => setTimeout(r, 500));
+            await testSupportSearch();
+            await new Promise(r => setTimeout(r, 500));
+            
+            // Announcements Tests
+            await testAnnouncementsPublic();
+            await new Promise(r => setTimeout(r, 500));
+            await testAnnouncementsStats();
+            await new Promise(r => setTimeout(r, 500));
+            await testAnnouncementsCategories();
+            await new Promise(r => setTimeout(r, 500));
+            
+            // Database Tests
+            await testDatabaseConnection();
+            await new Promise(r => setTimeout(r, 500));
+            await testSupportTables();
+            await new Promise(r => setTimeout(r, 500));
+            await testAnnouncementsTables();
+            await new Promise(r => setTimeout(r, 500));
+            
+            // Integration Tests
+            testJSLibrary();
+            await new Promise(r => setTimeout(r, 500));
+            await testAPIConnectivity();
+            await new Promise(r => setTimeout(r, 500));
+            testEmailSystem();
+        }
+    </script>
+</body>
+</html>

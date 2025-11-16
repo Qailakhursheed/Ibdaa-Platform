@@ -1,0 +1,49 @@
+# بيانات حساسة
+database/requests.json
+database/requests_backup_*.json
+
+# ملفات مرفوعة من المستخدمين
+platform/uploads/ids/*
+!platform/uploads/ids/.gitkeep
+
+# صور المستخدمين
+platform/uploads/photos/*
+!platform/uploads/photos/.gitkeep
+
+# Composer dependencies
+vendor/
+composer.lock
+
+# PHPMailer
+platform/vendor/
+
+# ملفات النظام
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+error.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Database backups
+*.sql
+*.sql.gz
+*.backup
+
+# Configuration files (with sensitive data)
+# Uncomment if you have config files with passwords
+# config.php
+# Mailer/config.php

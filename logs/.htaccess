@@ -1,0 +1,3 @@
+# حماية مجلد السجلات من الوصول المباشر
+Order Deny,Allow
+Deny from all

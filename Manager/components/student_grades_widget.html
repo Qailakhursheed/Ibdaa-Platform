@@ -1,0 +1,341 @@
+<!-- 📊 Student Grades Dashboard - Real-time Dynamic Updates -->
+<div id="grades-dashboard" class="space-y-6">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg p-8 text-white">
+        <h1 class="text-3xl font-bold mb-2">📊 درجاتي</h1>
+        <p class="text-blue-100">متابعة حية لجميع درجاتك في الدورات</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-gray-600 font-semibold">إجمالي الدورات</h3>
+                <div class="bg-blue-100 p-3 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                </div>
+            </div>
+            <div class="text-3xl font-bold text-gray-800" id="total-courses">0</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-gray-600 font-semibold">المعدل العام</h3>
+                <div class="bg-green-100 p-3 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="text-3xl font-bold text-gray-800" id="overall-average">0%</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-gray-600 font-semibold">الشهادات</h3>
+                <div class="bg-purple-100 p-3 rounded-lg">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="text-3xl font-bold text-gray-800" id="certificates-earned">0</div>
+        </div>
+    </div>
+
+    <!-- Courses Grades -->
+    <div id="courses-grades-container" class="space-y-6">
+        <!-- Will be filled dynamically -->
+    </div>
+
+    <!-- No grades message -->
+    <div id="no-grades" class="hidden bg-white rounded-xl shadow-lg p-12 text-center">
+        <div class="text-6xl mb-4">📝</div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">لا توجد درجات بعد</h3>
+        <p class="text-gray-600">سيتم عرض درجاتك هنا فور إدخالها من قبل المشرفين</p>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="grade-notification" class="hidden fixed top-4 left-4 right-4 bg-green-600 text-white p-4 rounded-xl shadow-2xl z-50 animate-slide-down">
+        <div class="flex items-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div class="flex-1">
+                <h4 class="font-bold">تحديث جديد في الدرجات!</h4>
+                <p id="notification-message" class="text-sm text-green-100"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 📊 GRADES DASHBOARD SYSTEM
+class GradesDashboard {
+    constructor() {
+        this.grades = [];
+        this.updateInterval = null;
+        this.lastUpdate = null;
+    }
+
+    async init() {
+        await this.loadGrades();
+        this.startRealTimeUpdates();
+    }
+
+    async loadGrades() {
+        try {
+            const response = await fetch('../api/grades_system.php?action=get_grades');
+            const data = await response.json();
+
+            if (data.success) {
+                this.grades = data.grades;
+                this.lastUpdate = new Date();
+                this.renderGrades();
+                this.updateSummary();
+            } else {
+                console.error('Error loading grades:', data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    renderGrades() {
+        const container = document.getElementById('courses-grades-container');
+        
+        if (this.grades.length === 0) {
+            container.innerHTML = '';
+            document.getElementById('no-grades').classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('no-grades').classList.add('hidden');
+
+        let html = '';
+
+        this.grades.forEach(course => {
+            const percentage = course.final_grade || 0;
+            const status = course.enrollment_status;
+            const statusColor = status === 'completed' ? 'green' : status === 'active' ? 'blue' : 'gray';
+            const statusText = status === 'completed' ? 'مكتملة' : status === 'active' ? 'نشطة' : 'متوقفة';
+
+            html += `
+                <div class="bg-white rounded-2xl shadow-lg p-6 transform transition-all hover:scale-105">
+                    <!-- Course Header -->
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 mb-2">${course.course_title}</h2>
+                            <span class="inline-block bg-${statusColor}-100 text-${statusColor}-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                ${statusText}
+                            </span>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-4xl font-bold ${percentage >= 90 ? 'text-green-600' : percentage >= 70 ? 'text-blue-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                                ${percentage.toFixed(1)}%
+                            </div>
+                            <p class="text-sm text-gray-600">الدرجة النهائية</p>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-6">
+                        <div class="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full ${percentage >= 90 ? 'bg-green-600' : percentage >= 70 ? 'bg-blue-600' : percentage >= 50 ? 'bg-yellow-600' : 'bg-red-600'} transition-all duration-500"
+                                 style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Grade Components -->
+                    <div class="space-y-3">
+                        <h3 class="font-semibold text-gray-700 mb-3">تفاصيل المكونات:</h3>
+                        ${course.components.map(comp => {
+                            const compPercentage = comp.percentage;
+                            return `
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="font-semibold text-gray-800">${comp.component}</span>
+                                        <span class="text-gray-600 font-bold">${comp.value}/${comp.max}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div class="h-full ${compPercentage >= 90 ? 'bg-green-500' : compPercentage >= 70 ? 'bg-blue-500' : compPercentage >= 50 ? 'bg-yellow-500' : 'bg-red-500'}"
+                                                 style="width: ${compPercentage}%"></div>
+                                        </div>
+                                        <span class="text-sm font-semibold ${compPercentage >= 90 ? 'text-green-600' : compPercentage >= 70 ? 'text-blue-600' : compPercentage >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                                            ${compPercentage.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                    <div class="mt-2 text-xs text-gray-500">
+                                        تم الإدخال بواسطة: ${comp.entered_by} • 
+                                        <span title="${comp.entered_at}">
+                                            ${this.formatDate(comp.updated_at || comp.entered_at)}
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <!-- Certificate Button -->
+                    ${status === 'completed' && percentage >= 50 ? `
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <a href="../api/generate_certificate.php?course_id=${course.course_id}" 
+                               target="_blank"
+                               class="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                </svg>
+                                تحميل الشهادة
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    updateSummary() {
+        // Total courses
+        document.getElementById('total-courses').textContent = this.grades.length;
+
+        // Overall average
+        if (this.grades.length > 0) {
+            const sum = this.grades.reduce((acc, course) => acc + (course.final_grade || 0), 0);
+            const avg = sum / this.grades.length;
+            document.getElementById('overall-average').textContent = avg.toFixed(1) + '%';
+        } else {
+            document.getElementById('overall-average').textContent = '0%';
+        }
+
+        // Certificates earned
+        const completed = this.grades.filter(c => c.enrollment_status === 'completed' && (c.final_grade || 0) >= 50);
+        document.getElementById('certificates-earned').textContent = completed.length;
+    }
+
+    startRealTimeUpdates() {
+        // Check for updates every 10 seconds
+        this.updateInterval = setInterval(async () => {
+            await this.checkForUpdates();
+        }, 10000);
+    }
+
+    async checkForUpdates() {
+        try {
+            const response = await fetch('../api/grades_system.php?action=get_grades');
+            const data = await response.json();
+
+            if (data.success) {
+                const hasChanges = this.detectChanges(data.grades);
+                
+                if (hasChanges) {
+                    this.grades = data.grades;
+                    this.renderGrades();
+                    this.updateSummary();
+                    this.showNotification('تم تحديث درجاتك! 🎉');
+                }
+            }
+        } catch (error) {
+            console.error('Error checking updates:', error);
+        }
+    }
+
+    detectChanges(newGrades) {
+        if (this.grades.length !== newGrades.length) {
+            return true;
+        }
+
+        for (let i = 0; i < newGrades.length; i++) {
+            const oldCourse = this.grades.find(c => c.course_id === newGrades[i].course_id);
+            
+            if (!oldCourse) {
+                return true;
+            }
+
+            if (oldCourse.final_grade !== newGrades[i].final_grade) {
+                return true;
+            }
+
+            if (oldCourse.components.length !== newGrades[i].components.length) {
+                return true;
+            }
+
+            for (let j = 0; j < newGrades[i].components.length; j++) {
+                const oldComp = oldCourse.components.find(c => c.component === newGrades[i].components[j].component);
+                
+                if (!oldComp || oldComp.value !== newGrades[i].components[j].value) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    showNotification(message) {
+        const notification = document.getElementById('grade-notification');
+        document.getElementById('notification-message').textContent = message;
+        
+        notification.classList.remove('hidden');
+        
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 5000);
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (minutes < 1) return 'الآن';
+        if (minutes < 60) return `منذ ${minutes} دقيقة`;
+        if (hours < 24) return `منذ ${hours} ساعة`;
+        if (days < 7) return `منذ ${days} يوم`;
+        
+        return date.toLocaleDateString('ar');
+    }
+
+    destroy() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
+    }
+}
+
+// Initialize
+const gradesDashboard = new GradesDashboard();
+document.addEventListener('DOMContentLoaded', () => {
+    gradesDashboard.init();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    gradesDashboard.destroy();
+});
+</script>
+
+<style>
+@keyframes slide-down {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-down {
+    animation: slide-down 0.3s ease-out;
+}
+</style>

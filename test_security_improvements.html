@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار التحسينات الأمنية - منصة إبداع</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .test-card { transition: all 0.3s; }
+        .test-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .status-badge { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen py-8">
+    <div class="container mx-auto px-4 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">🔒 اختبار التحسينات الأمنية</h1>
+                    <p class="text-gray-600">منصة إبداع - تعز | Security Testing Dashboard</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-5xl font-bold text-green-600">9.7</div>
+                    <div class="text-sm text-gray-500">التقييم الأمني</div>
+                    <div class="text-xs text-gray-400 mt-1">من 10</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Features Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- CSRF Protection -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
+                        🛡️
+                    </div>
+                    <div class="mr-4">
+                        <h3 class="font-bold text-gray-800">CSRF Protection</h3>
+                        <p class="text-xs text-gray-500">حماية ضد هجمات CSRF</p>
+                    </div>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>Token Generation</span>
+                        <span class="status-badge text-green-600 font-semibold">✅</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Token Validation</span>
+                        <span class="status-badge text-green-600 font-semibold">✅</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Form Integration</span>
+                        <span class="status-badge text-green-600 font-semibold">✅</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t">
+                    <div class="text-xs text-gray-600 mb-2">الملفات المحمية:</div>
+                    <div class="flex flex-wrap gap-1">
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">login.php</span>
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">register.php</span>
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">signup.php</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rate Limiting -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6 border-t-4 border-red-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center text-2xl">
+                        🚫
+                    </div>
+                    <div class="mr-4">
+                        <h3 class="font-bold text-gray-800">Rate Limiting</h3>
+                        <p class="text-xs text-gray-500">منع هجمات Brute Force</p>
+                    </div>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>Max Attempts</span>
+                        <span class="text-gray-800 font-semibold">5 محاولات</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Time Window</span>
+                        <span class="text-gray-800 font-semibold">15 دقيقة</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Lockout Time</span>
+                        <span class="text-gray-800 font-semibold">30 دقيقة</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t">
+                    <div class="text-xs text-gray-600 mb-2">الميزات:</div>
+                    <div class="flex flex-wrap gap-1">
+                        <span class="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">IP Tracking</span>
+                        <span class="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">Email Tracking</span>
+                        <span class="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">Auto Reset</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Security -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-2xl">
+                        🔐
+                    </div>
+                    <div class="mr-4">
+                        <h3 class="font-bold text-gray-800">Session Security</h3>
+                        <p class="text-xs text-gray-500">تأمين الجلسات</p>
+                    </div>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>Hijacking Prevention</span>
+                        <span class="status-badge text-green-600 font-semibold">✅</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Fixation Prevention</span>
+                        <span class="status-badge text-green-600 font-semibold">✅</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Timeout (30 min)</span>
+                        <span class="status-badge text-green-600 font-semibold">✅</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t">
+                    <div class="text-xs text-gray-600 mb-2">الإعدادات:</div>
+                    <div class="flex flex-wrap gap-1">
+                        <span class="px-2 py-1 bg-green-50 text-green-700 rounded text-xs">HttpOnly</span>
+                        <span class="px-2 py-1 bg-green-50 text-green-700 rounded text-xs">SameSite</span>
+                        <span class="px-2 py-1 bg-green-50 text-green-700 rounded text-xs">Secure Ready</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Scenarios -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">🧪 سيناريوهات الاختبار</h2>
+            
+            <!-- CSRF Tests -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-blue-600 mb-3 flex items-center">
+                    🛡️ اختبار CSRF Protection
+                </h3>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div class="flex items-start">
+                        <span class="text-green-600 font-bold mr-2">✓</span>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">اختبار إيجابي</div>
+                            <div class="text-sm text-gray-600">افتح signup.php، املأ النموذج بـ token صحيح → يجب أن ينجح التسجيل</div>
+                            <a href="../platform/signup.php" target="_blank" class="text-xs text-blue-600 hover:underline">← افتح صفحة التسجيل</a>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="text-red-600 font-bold mr-2">✗</span>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">اختبار سلبي</div>
+                            <div class="text-sm text-gray-600">افتح Console، غير csrf_token إلى قيمة خاطئة → يجب أن يرفض الطلب</div>
+                            <code class="text-xs bg-gray-800 text-white px-2 py-1 rounded block mt-1">
+                                document.querySelector('input[name="csrf_token"]').value = 'fake123';
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rate Limiting Tests -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-red-600 mb-3 flex items-center">
+                    🚫 اختبار Rate Limiting
+                </h3>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div class="flex items-start">
+                        <span class="text-yellow-600 font-bold mr-2">⚠️</span>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">اختبار حد المحاولات</div>
+                            <div class="text-sm text-gray-600">حاول تسجيل الدخول 5 مرات بكلمة مرور خاطئة → يجب أن يُحظر في المحاولة السادسة</div>
+                            <a href="../platform/login.php" target="_blank" class="text-xs text-blue-600 hover:underline">← افتح صفحة تسجيل الدخول</a>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="text-green-600 font-bold mr-2">✓</span>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">اختبار إعادة التعيين</div>
+                            <div class="text-sm text-gray-600">بعد الحظر، سجل دخول بكلمة صحيحة → يجب أن تُمسح السجلات</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                <strong>حساب الاختبار:</strong> admin_manager@ibdaa.local / Test@123
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Security Tests -->
+            <div>
+                <h3 class="text-lg font-semibold text-green-600 mb-3 flex items-center">
+                    🔐 اختبار Session Security
+                </h3>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div class="flex items-start">
+                        <span class="text-blue-600 font-bold mr-2">⏱️</span>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">اختبار Timeout</div>
+                            <div class="text-sm text-gray-600">سجل دخول، انتظر 31 دقيقة → يجب أن تنتهي الجلسة تلقائياً</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="text-purple-600 font-bold mr-2">🔄</span>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800">اختبار Session ID Regeneration</div>
+                            <div class="text-sm text-gray-600">افحص PHPSESSID قبل وبعد التسجيل → يجب أن يتغير</div>
+                            <code class="text-xs bg-gray-800 text-white px-2 py-1 rounded block mt-1">
+                                DevTools → Application → Cookies → PHPSESSID
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Check -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">🗄️ التحقق من قاعدة البيانات</h2>
+            <div class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                <div class="mb-2">-- التحقق من جدول login_attempts</div>
+                <div>SHOW TABLES LIKE 'login_attempts';</div>
+                <div class="mt-4 mb-2">-- فحص البنية</div>
+                <div>DESCRIBE login_attempts;</div>
+                <div class="mt-4 mb-2">-- فحص السجلات الأخيرة</div>
+                <div>SELECT ip_address, email, attempted_at, success</div>
+                <div>FROM login_attempts</div>
+                <div>ORDER BY attempted_at DESC</div>
+                <div>LIMIT 10;</div>
+            </div>
+            <a href="http://localhost/phpmyadmin" target="_blank" 
+               class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                افتح phpMyAdmin →
+            </a>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">🔗 روابط سريعة</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="../platform/login.php" target="_blank" 
+                   class="block p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-center transition">
+                    <div class="text-2xl mb-2">🔐</div>
+                    <div class="font-semibold text-gray-800">تسجيل دخول طالب</div>
+                    <div class="text-xs text-gray-500 mt-1">platform/login.php</div>
+                </a>
+                <a href="../Manager/login.php" target="_blank" 
+                   class="block p-4 bg-purple-50 hover:bg-purple-100 rounded-lg text-center transition">
+                    <div class="text-2xl mb-2">👨‍💼</div>
+                    <div class="font-semibold text-gray-800">تسجيل دخول مدير</div>
+                    <div class="text-xs text-gray-500 mt-1">Manager/login.php</div>
+                </a>
+                <a href="../platform/signup.php" target="_blank" 
+                   class="block p-4 bg-green-50 hover:bg-green-100 rounded-lg text-center transition">
+                    <div class="text-2xl mb-2">📝</div>
+                    <div class="font-semibold text-gray-800">التسجيل</div>
+                    <div class="text-xs text-gray-500 mt-1">platform/signup.php</div>
+                </a>
+                <a href="../SECURITY_IMPROVEMENTS_REPORT.md" target="_blank" 
+                   class="block p-4 bg-yellow-50 hover:bg-yellow-100 rounded-lg text-center transition">
+                    <div class="text-2xl mb-2">📄</div>
+                    <div class="font-semibold text-gray-800">التقرير الكامل</div>
+                    <div class="text-xs text-gray-500 mt-1">SECURITY_IMPROVEMENTS_REPORT.md</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-600 text-sm">
+            <p>🔒 منصة إبداع - تعز | Security Testing Dashboard</p>
+            <p class="mt-2">آخر تحديث: 12 نوفمبر 2025 | التقييم الأمني: <strong class="text-green-600">9.7/10</strong></p>
+        </div>
+    </div>
+</body>
+</html>

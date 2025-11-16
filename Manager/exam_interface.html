@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الاختبار - نظام منع الغش المتقدم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* منع التحديد والنسخ */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* إخفاء أدوات المتصفح في وضع ملء الشاشة */
+        :fullscreen {
+            background: white;
+        }
+        
+        /* تنبيه الغش */
+        .cheat-warning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #DC2626;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            z-index: 9999;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .timer-warning {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 no-select">
+    <!-- التحذير من محاولة الغش -->
+    <div id="cheat-warning" class="cheat-warning hidden">
+        ⚠️ تحذير: تم رصد محاولة غش! سيتم تسجيل هذا النشاط
+    </div>
+
+    <!-- شريط الحالة -->
+    <div class="bg-blue-600 text-white py-3 px-6 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold" id="exam-title">جاري التحميل...</h1>
+            <span class="bg-blue-800 px-3 py-1 rounded-full text-sm" id="question-counter">0/0</span>
+        </div>
+        <div class="flex items-center gap-6">
+            <div id="timer" class="text-2xl font-bold bg-blue-800 px-4 py-2 rounded-lg">
+                <span id="timer-display">00:00</span>
+            </div>
+            <div id="warning-count" class="bg-red-600 px-3 py-1 rounded-full text-sm hidden">
+                تحذيرات: <span id="warnings">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- تعليمات البدء -->
+        <div id="instructions" class="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📋 تعليمات الاختبار</h2>
+            <div class="space-y-3 text-gray-700">
+                <p class="flex items-start gap-2">
+                    <span class="text-green-600 font-bold">✓</span>
+                    <span>يجب الإجابة على جميع الأسئلة قبل التسليم</span>
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-green-600 font-bold">✓</span>
+                    <span>لا يمكن العودة للأسئلة السابقة بعد الانتقال</span>
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-red-600 font-bold">✗</span>
+                    <span>ممنوع النسخ واللصق</span>
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-red-600 font-bold">✗</span>
+                    <span>ممنوع الخروج من صفحة الاختبار أو تبديل التبويبات</span>
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-red-600 font-bold">✗</span>
+                    <span>يجب البقاء في وضع ملء الشاشة طوال الاختبار</span>
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-orange-600 font-bold">⚠</span>
+                    <span>سيتم تسجيل أي محاولة غش وقد يؤدي ذلك لإلغاء الاختبار</span>
+                </p>
+            </div>
+            
+            <div class="mt-6 bg-blue-50 border-r-4 border-blue-600 p-4 rounded">
+                <p class="text-blue-900 font-semibold">المدة المتاحة: <span id="duration-display">-</span> دقيقة</p>
+                <p class="text-blue-900 font-semibold">عدد الأسئلة: <span id="total-questions-display">-</span></p>
+                <p class="text-blue-900 font-semibold">الدرجة الكلية: <span id="total-marks-display">-</span></p>
+            </div>
+
+            <button id="start-btn" 
+                    class="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg">
+                🚀 بدء الاختبار الآن
+            </button>
+        </div>
+
+        <!-- الأسئلة -->
+        <div id="exam-container" class="hidden">
+            <div id="questions-container" class="space-y-6">
+                <!-- سيتم ملؤها ديناميكياً -->
+            </div>
+
+            <div class="mt-8 flex justify-between items-center">
+                <button id="prev-btn" 
+                        class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled>
+                    ← السابق
+                </button>
+                
+                <div class="text-center">
+                    <div id="progress-bar" class="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="progress-fill" class="h-full bg-blue-600 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1"><span id="current-q">1</span> من <span id="total-q">10</span></p>
+                </div>
+
+                <button id="next-btn" 
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all">
+                    التالي →
+                </button>
+                
+                <button id="submit-btn" 
+                        class="hidden px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg">
+                    ✓ تسليم الاختبار
+                </button>
+            </div>
+        </div>
+
+        <!-- نتيجة الاختبار -->
+        <div id="result-container" class="hidden bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">تم تسليم الاختبار بنجاح!</h2>
+            <p class="text-gray-600 mb-6">سيتم إعلامك بالنتيجة قريباً</p>
+            <div id="score-display" class="hidden mb-6">
+                <div class="text-4xl font-bold text-blue-600 mb-2"><span id="score-value">0</span>/<span id="total-marks">100</span></div>
+                <p class="text-gray-600">درجتك النهائية</p>
+            </div>
+            <button onclick="window.location.href='/student-dashboard.php'" 
+                    class="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all">
+                العودة إلى لوحة التحكم
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 🛡️ ANTI-CHEAT SYSTEM
+        class AntiCheatSystem {
+            constructor() {
+                this.warnings = 0;
+                this.maxWarnings = 3;
+                this.events = [];
+                this.isFullscreen = false;
+                this.tabSwitchCount = 0;
+                this.copyAttempts = 0;
+                this.examStarted = false;
+            }
+
+            init() {
+                this.preventContextMenu();
+                this.preventCopyPaste();
+                this.detectTabSwitch();
+                this.detectFullscreenExit();
+                this.preventScreenCapture();
+                this.detectDevTools();
+            }
+
+            preventContextMenu() {
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.logEvent('context_menu_attempt');
+                    this.showWarning('ممنوع استخدام القائمة المنبثقة');
+                });
+            }
+
+            preventCopyPaste() {
+                ['copy', 'cut', 'paste'].forEach(event => {
+                    document.addEventListener(event, (e) => {
+                        e.preventDefault();
+                        this.copyAttempts++;
+                        this.logEvent(`${event}_attempt`);
+                        this.showWarning(`ممنوع ${event === 'copy' ? 'النسخ' : event === 'cut' ? 'القص' : 'اللصق'}`);
+                    });
+                });
+
+                // منع Ctrl+C/V/X
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'a'].includes(e.key.toLowerCase())) {
+                        e.preventDefault();
+                        this.logEvent('keyboard_shortcut_attempt', { key: e.key });
+                        this.showWarning('ممنوع استخدام اختصارات لوحة المفاتيح');
+                    }
+                    
+                    // منع F12 و Ctrl+Shift+I (Developer Tools)
+                    if (e.key === 'F12' || 
+                        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'I')) {
+                        e.preventDefault();
+                        this.logEvent('devtools_attempt');
+                        this.showWarning('ممنوع فتح أدوات المطورين');
+                    }
+                });
+            }
+
+            detectTabSwitch() {
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden && this.examStarted) {
+                        this.tabSwitchCount++;
+                        this.logEvent('tab_switch', { count: this.tabSwitchCount });
+                        this.showWarning('⚠️ تحذير: تم رصد مغادرة صفحة الاختبار!');
+                        
+                        if (this.tabSwitchCount >= 3) {
+                            this.autoSubmitExam('تم تجاوز عدد مرات التبديل المسموح بها');
+                        }
+                    }
+                });
+
+                window.addEventListener('blur', () => {
+                    if (this.examStarted) {
+                        this.logEvent('window_blur');
+                    }
+                });
+            }
+
+            detectFullscreenExit() {
+                document.addEventListener('fullscreenchange', () => {
+                    if (!document.fullscreenElement && this.examStarted) {
+                        this.logEvent('fullscreen_exit');
+                        this.showWarning('⚠️ يجب البقاء في وضع ملء الشاشة!');
+                        
+                        // إعادة الدخول لوضع ملء الشاشة
+                        setTimeout(() => {
+                            this.requestFullscreen();
+                        }, 1000);
+                    }
+                });
+            }
+
+            preventScreenCapture() {
+                // محاولة اكتشاف Print Screen
+                document.addEventListener('keyup', (e) => {
+                    if (e.key === 'PrintScreen') {
+                        this.logEvent('screenshot_attempt');
+                        this.showWarning('⚠️ ممنوع التقاط لقطات الشاشة!');
+                        
+                        // مسح الحافظة
+                        navigator.clipboard.writeText('');
+                    }
+                });
+            }
+
+            detectDevTools() {
+                // اكتشاف فتح أدوات المطورين
+                const devtools = /./;
+                devtools.toString = () => {
+                    this.logEvent('devtools_opened');
+                    this.showWarning('⚠️ تم اكتشاف أدوات المطورين!');
+                    return '';
+                };
+                console.log('%c', devtools);
+            }
+
+            requestFullscreen() {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.error('Fullscreen error:', err);
+                    });
+                }
+            }
+
+            showWarning(message) {
+                this.warnings++;
+                
+                const warningEl = document.getElementById('cheat-warning');
+                warningEl.textContent = message;
+                warningEl.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    warningEl.classList.add('hidden');
+                }, 3000);
+
+                // تحديث عداد التحذيرات
+                document.getElementById('warnings').textContent = this.warnings;
+                document.getElementById('warning-count').classList.remove('hidden');
+
+                if (this.warnings >= this.maxWarnings) {
+                    this.autoSubmitExam('تجاوز الحد الأقصى للتحذيرات');
+                }
+            }
+
+            logEvent(eventType, data = {}) {
+                this.events.push({
+                    type: eventType,
+                    data: data,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            autoSubmitExam(reason) {
+                alert(`سيتم تسليم الاختبار تلقائياً\nالسبب: ${reason}`);
+                // Trigger submit
+                examSystem.submitExam(true);
+            }
+
+            getEvents() {
+                return this.events;
+            }
+
+            startMonitoring() {
+                this.examStarted = true;
+                this.requestFullscreen();
+            }
+        }
+
+        // 📝 EXAM SYSTEM
+        class ExamSystem {
+            constructor() {
+                this.examId = new URLSearchParams(window.location.search).get('exam_id');
+                this.exam = null;
+                this.attemptId = null;
+                this.currentQuestion = 0;
+                this.answers = {};
+                this.startTime = null;
+                this.timer = null;
+            }
+
+            async init() {
+                await this.loadExam();
+                this.setupEventListeners();
+            }
+
+            async loadExam() {
+                try {
+                    const response = await fetch(`../api/exams_system.php?action=get_exam&exam_id=${this.examId}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.exam = data.exam;
+                        this.displayInstructions();
+                    } else {
+                        alert(data.message);
+                        window.location.href = '/student-dashboard.php';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('حدث خطأ في تحميل الاختبار');
+                }
+            }
+
+            displayInstructions() {
+                document.getElementById('exam-title').textContent = this.exam.title;
+                document.getElementById('duration-display').textContent = this.exam.duration_minutes;
+                document.getElementById('total-questions-display').textContent = this.exam.questions.length;
+                document.getElementById('total-marks-display').textContent = this.exam.total_marks;
+            }
+
+            setupEventListeners() {
+                document.getElementById('start-btn').addEventListener('click', () => this.startExam());
+                document.getElementById('next-btn').addEventListener('click', () => this.nextQuestion());
+                document.getElementById('prev-btn').addEventListener('click', () => this.prevQuestion());
+                document.getElementById('submit-btn').addEventListener('click', () => this.submitExam());
+            }
+
+            async startExam() {
+                // Start attempt
+                const formData = new FormData();
+                formData.append('action', 'start_attempt');
+                formData.append('exam_id', this.examId);
+
+                const response = await fetch('../api/exams_system.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.attemptId = data.attempt_id;
+                    this.startTime = new Date(data.start_time);
+                    
+                    // Hide instructions, show exam
+                    document.getElementById('instructions').classList.add('hidden');
+                    document.getElementById('exam-container').classList.remove('hidden');
+                    
+                    // Start anti-cheat
+                    antiCheat.startMonitoring();
+                    
+                    // Start timer
+                    this.startTimer();
+                    
+                    // Render first question
+                    this.renderQuestion();
+                } else {
+                    alert(data.message);
+                }
+            }
+
+            startTimer() {
+                const duration = this.exam.duration_minutes * 60;
+                let remaining = duration;
+
+                this.timer = setInterval(() => {
+                    remaining--;
+                    
+                    const minutes = Math.floor(remaining / 60);
+                    const seconds = remaining % 60;
+                    
+                    document.getElementById('timer-display').textContent = 
+                        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                    if (remaining <= 60) {
+                        document.getElementById('timer').classList.add('timer-warning');
+                    }
+
+                    if (remaining <= 0) {
+                        clearInterval(this.timer);
+                        this.submitExam(true);
+                    }
+                }, 1000);
+            }
+
+            renderQuestion() {
+                const question = this.exam.questions[this.currentQuestion];
+                const container = document.getElementById('questions-container');
+                
+                let html = `
+                    <div class="bg-white rounded-2xl shadow-lg p-8">
+                        <div class="mb-4">
+                            <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                السؤال ${this.currentQuestion + 1}
+                            </span>
+                            <span class="mr-2 text-gray-600">(${question.marks} درجة)</span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">${question.question_text}</h3>
+                        
+                        <div class="space-y-3">
+                `;
+
+                if (question.question_type === 'mcq') {
+                    question.options.forEach((option, index) => {
+                        const checked = this.answers[question.question_id] === option ? 'checked' : '';
+                        html += `
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-blue-50 transition-all ${checked ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}">
+                                <input type="radio" 
+                                       name="q_${question.question_id}" 
+                                       value="${option}"
+                                       ${checked}
+                                       onchange="examSystem.saveAnswer(${question.question_id}, this.value)"
+                                       class="w-5 h-5 text-blue-600">
+                                <span class="mr-3 text-gray-800">${option}</span>
+                            </label>
+                        `;
+                    });
+                } else if (question.question_type === 'true_false') {
+                    ['صح', 'خطأ'].forEach(option => {
+                        const checked = this.answers[question.question_id] === option ? 'checked' : '';
+                        html += `
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-blue-50 transition-all ${checked ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}">
+                                <input type="radio" 
+                                       name="q_${question.question_id}" 
+                                       value="${option}"
+                                       ${checked}
+                                       onchange="examSystem.saveAnswer(${question.question_id}, this.value)"
+                                       class="w-5 h-5 text-blue-600">
+                                <span class="mr-3 text-gray-800">${option}</span>
+                            </label>
+                        `;
+                    });
+                } else {
+                    const value = this.answers[question.question_id] || '';
+                    html += `
+                        <textarea 
+                            id="answer_${question.question_id}"
+                            rows="6"
+                            class="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none resize-none"
+                            placeholder="اكتب إجابتك هنا..."
+                            onchange="examSystem.saveAnswer(${question.question_id}, this.value)"
+                        >${value}</textarea>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+                this.updateProgress();
+            }
+
+            saveAnswer(questionId, answer) {
+                this.answers[questionId] = answer;
+            }
+
+            nextQuestion() {
+                if (this.currentQuestion < this.exam.questions.length - 1) {
+                    this.currentQuestion++;
+                    this.renderQuestion();
+                }
+                
+                if (this.currentQuestion === this.exam.questions.length - 1) {
+                    document.getElementById('next-btn').classList.add('hidden');
+                    document.getElementById('submit-btn').classList.remove('hidden');
+                }
+                
+                document.getElementById('prev-btn').disabled = false;
+            }
+
+            prevQuestion() {
+                if (this.currentQuestion > 0) {
+                    this.currentQuestion--;
+                    this.renderQuestion();
+                }
+                
+                if (this.currentQuestion === 0) {
+                    document.getElementById('prev-btn').disabled = true;
+                }
+                
+                document.getElementById('next-btn').classList.remove('hidden');
+                document.getElementById('submit-btn').classList.add('hidden');
+            }
+
+            updateProgress() {
+                const progress = ((this.currentQuestion + 1) / this.exam.questions.length) * 100;
+                document.getElementById('progress-fill').style.width = `${progress}%`;
+                document.getElementById('current-q').textContent = this.currentQuestion + 1;
+                document.getElementById('total-q').textContent = this.exam.questions.length;
+                document.getElementById('question-counter').textContent = 
+                    `${this.currentQuestion + 1}/${this.exam.questions.length}`;
+            }
+
+            async submitExam(autoSubmit = false) {
+                if (!autoSubmit) {
+                    if (!confirm('هل أنت متأكد من تسليم الاختبار؟\nلن تتمكن من التعديل بعد التسليم')) {
+                        return;
+                    }
+                }
+
+                clearInterval(this.timer);
+
+                const payload = {
+                    action: 'submit',
+                    attempt_id: this.attemptId,
+                    answers: this.answers,
+                    anti_cheat_events: antiCheat.getEvents()
+                };
+
+                try {
+                    const response = await fetch('../api/exams_system.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        document.getElementById('exam-container').classList.add('hidden');
+                        document.getElementById('result-container').classList.remove('hidden');
+                        
+                        if (data.score !== undefined) {
+                            document.getElementById('score-display').classList.remove('hidden');
+                            document.getElementById('score-value').textContent = data.score;
+                            document.getElementById('total-marks').textContent = this.exam.total_marks;
+                        }
+
+                        // Exit fullscreen
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen();
+                        }
+                    } else {
+                        alert('خطأ في تسليم الاختبار: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('حدث خطأ في تسليم الاختبار');
+                }
+            }
+        }
+
+        // Initialize systems
+        const antiCheat = new AntiCheatSystem();
+        const examSystem = new ExamSystem();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            antiCheat.init();
+            examSystem.init();
+        });
+    </script>
+</body>
+</html>
