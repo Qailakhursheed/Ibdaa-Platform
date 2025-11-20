@@ -102,6 +102,16 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
 
         if (move_uploaded_file($_FILES['photo']['tmp_name'], $upload_path)) {
             $photo_path = $upload_path;
+            
+            // تطبيق العلامة المائية على الصورة المرفوعة
+            try {
+                require_once __DIR__ . '/watermark_system.php';
+                $wm = new WatermarkManager();
+                $wm->addWatermark($upload_path, $upload_path);
+            } catch (Exception $e) {
+                // لا نفشل التسجيل بسبب فشل العلامة المائية
+                error_log('Watermark error in register: ' . $e->getMessage());
+            }
         } else {
             $errors[] = "فشل رفع الصورة";
         }

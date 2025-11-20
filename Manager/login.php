@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             // Redirect to appropriate dashboard based on role
                             switch ($user['role']) {
                                 case 'manager':
-                                    header('Location: dashboard_enhanced.php');
+                                    header('Location: dashboard.php');
                                     break;
                                 case 'technical':
                                     header('Location: dashboards/technical-dashboard.php');
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     header('Location: dashboards/trainer-dashboard.php');
                                     break;
                                 case 'student':
-                                    header('Location: dashboards/student-dashboard.php');
+                                    header('Location: ../platform/student-dashboard.php');
                                     break;
                                 default:
                                     header('Location: dashboard_router.php');

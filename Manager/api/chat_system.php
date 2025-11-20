@@ -39,33 +39,33 @@ try {
         if ($action === 'conversations') {
             $sql = "
                 SELECT 
-                    c.chat_id,
-                    c.sender_id,
-                    c.receiver_id,
-                    c.message,
-                    c.is_read,
-                    c.created_at,
+                    m.message_id,
+                    m.sender_id,
+                    m.recipient_id,
+                    m.body as message,
+                    m.is_read,
+                    m.created_at,
                     CASE 
-                        WHEN c.sender_id = ? THEN u_receiver.full_name
+                        WHEN m.sender_id = ? THEN u_receiver.full_name
                         ELSE u_sender.full_name
                     END AS contact_name,
                     CASE 
-                        WHEN c.sender_id = ? THEN c.receiver_id
-                        ELSE c.sender_id
+                        WHEN m.sender_id = ? THEN m.recipient_id
+                        ELSE m.sender_id
                     END AS contact_id,
                     CASE 
-                        WHEN c.sender_id = ? THEN u_receiver.profile_picture
-                        ELSE u_sender.profile_picture
+                        WHEN m.sender_id = ? THEN u_receiver.photo_path
+                        ELSE u_sender.photo_path
                     END AS contact_picture,
                     CASE 
-                        WHEN c.sender_id = ? THEN u_receiver.role
+                        WHEN m.sender_id = ? THEN u_receiver.role
                         ELSE u_sender.role
                     END AS contact_role
-                FROM chats c
-                INNER JOIN users u_sender ON c.sender_id = u_sender.id
-                INNER JOIN users u_receiver ON c.receiver_id = u_receiver.id
-                WHERE c.sender_id = ? OR c.receiver_id = ?
-                ORDER BY c.created_at DESC
+                FROM messages m
+                INNER JOIN users u_sender ON m.sender_id = u_sender.id
+                INNER JOIN users u_receiver ON m.recipient_id = u_receiver.id
+                WHERE m.sender_id = ? OR m.recipient_id = ?
+                ORDER BY m.created_at DESC
             ";
             
             $stmt = $conn->prepare($sql);
@@ -85,8 +85,8 @@ try {
                     
                     // حساب الرسائل غير المقروءة
                     $unread_stmt = $conn->prepare(
-                        "SELECT COUNT(*) as unread FROM chats 
-                         WHERE sender_id = ? AND receiver_id = ? AND is_read = 0"
+                        "SELECT COUNT(*) as unread FROM messages 
+                         WHERE sender_id = ? AND recipient_id = ? AND is_read = 0"
                     );
                     $unread_stmt->bind_param('ii', $contact_id, $user_id);
                     $unread_stmt->execute();
@@ -125,19 +125,19 @@ try {
             
             $sql = "
                 SELECT 
-                    c.chat_id,
-                    c.sender_id,
-                    c.receiver_id,
-                    c.message,
-                    c.is_read,
-                    c.created_at,
+                    m.message_id,
+                    m.sender_id,
+                    m.recipient_id,
+                    m.body as message,
+                    m.is_read,
+                    m.created_at,
                     u_sender.full_name AS sender_name,
-                    u_sender.profile_picture AS sender_picture
-                FROM chats c
-                INNER JOIN users u_sender ON c.sender_id = u_sender.id
-                WHERE (c.sender_id = ? AND c.receiver_id = ?)
-                   OR (c.sender_id = ? AND c.receiver_id = ?)
-                ORDER BY c.created_at ASC
+                    u_sender.photo_path AS sender_picture
+                FROM messages m
+                INNER JOIN users u_sender ON m.sender_id = u_sender.id
+                WHERE (m.sender_id = ? AND m.recipient_id = ?)
+                   OR (m.sender_id = ? AND m.recipient_id = ?)
+                ORDER BY m.created_at ASC
             ";
             
             $stmt = $conn->prepare($sql);
@@ -148,9 +148,9 @@ try {
             $messages = [];
             while ($row = $result->fetch_assoc()) {
                 $messages[] = [
-                    'chat_id' => (int)$row['chat_id'],
+                    'message_id' => (int)$row['message_id'],
                     'sender_id' => (int)$row['sender_id'],
-                    'receiver_id' => (int)$row['receiver_id'],
+                    'recipient_id' => (int)$row['recipient_id'],
                     'message' => $row['message'],
                     'is_read' => (bool)$row['is_read'],
                     'created_at' => $row['created_at'],
@@ -164,8 +164,8 @@ try {
             
             // تحديث حالة القراءة للرسائل المستلمة
             $update_stmt = $conn->prepare(
-                "UPDATE chats SET is_read = 1 
-                 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0"
+                "UPDATE messages SET is_read = 1 
+                 WHERE sender_id = ? AND recipient_id = ? AND is_read = 0"
             );
             $update_stmt->bind_param('ii', $contact_id, $user_id);
             $update_stmt->execute();
@@ -173,7 +173,7 @@ try {
             
             // جلب بيانات المستخدم الآخر
             $contact_stmt = $conn->prepare(
-                "SELECT id, full_name, email, phone, role, profile_picture, account_status 
+                "SELECT id, full_name, email, phone, role, photo_path as profile_picture 
                  FROM users WHERE id = ?"
             );
             $contact_stmt->bind_param('i', $contact_id);
@@ -193,7 +193,7 @@ try {
         // جلب عدد الرسائل غير المقروءة
         if ($action === 'unread_count') {
             $stmt = $conn->prepare(
-                "SELECT COUNT(*) as unread FROM chats WHERE receiver_id = ? AND is_read = 0"
+                "SELECT COUNT(*) as unread FROM messages WHERE recipient_id = ? AND is_read = 0"
             );
             $stmt->bind_param('i', $user_id);
             $stmt->execute();
@@ -270,7 +270,7 @@ try {
             
             // إدراج الرسالة
             $stmt = $conn->prepare(
-                "INSERT INTO chats (sender_id, receiver_id, message, is_read, created_at) 
+                "INSERT INTO messages (sender_id, recipient_id, body, is_read, created_at) 
                  VALUES (?, ?, ?, 0, NOW())"
             );
             $stmt->bind_param('iis', $user_id, $receiver_id, $message);
@@ -280,7 +280,7 @@ try {
                 respond(['success' => false, 'message' => 'فشل إرسال الرسالة'], 500);
             }
             
-            $chat_id = $stmt->insert_id;
+            $message_id = $stmt->insert_id;
             $stmt->close();
             
             // إنشاء إشعار للمستلم
@@ -288,7 +288,7 @@ try {
                 "INSERT INTO notifications (user_id, title, message, type, link, is_read) 
                  VALUES (?, 'رسالة جديدة', ?, 'info', '/messages', 0)"
             );
-            $sender_name = $_SESSION['user_name'] ?? 'مستخدم';
+            $sender_name = $_SESSION['full_name'] ?? $_SESSION['user_name'] ?? 'مستخدم';
             $notif_message = "رسالة جديدة من {$sender_name}";
             $notif_stmt->bind_param('is', $receiver_id, $notif_message);
             $notif_stmt->execute();
@@ -297,25 +297,25 @@ try {
             respond([
                 'success' => true, 
                 'message' => 'تم إرسال الرسالة بنجاح',
-                'chat_id' => $chat_id,
+                'message_id' => $message_id,
                 'created_at' => date('Y-m-d H:i:s')
             ], 201);
         }
         
         // تحديث حالة القراءة
         if ($action === 'mark_read') {
-            $chat_ids = $data['chat_ids'] ?? [];
+            $message_ids = $data['message_ids'] ?? $data['chat_ids'] ?? [];
             
-            if (!is_array($chat_ids) || empty($chat_ids)) {
+            if (!is_array($message_ids) || empty($message_ids)) {
                 respond(['success' => false, 'message' => 'معرفات الرسائل مطلوبة'], 400);
             }
             
-            $placeholders = implode(',', array_fill(0, count($chat_ids), '?'));
-            $sql = "UPDATE chats SET is_read = 1 WHERE receiver_id = ? AND chat_id IN ($placeholders)";
+            $placeholders = implode(',', array_fill(0, count($message_ids), '?'));
+            $sql = "UPDATE messages SET is_read = 1 WHERE recipient_id = ? AND message_id IN ($placeholders)";
             
             $stmt = $conn->prepare($sql);
-            $types = str_repeat('i', count($chat_ids) + 1);
-            $params = array_merge([$user_id], $chat_ids);
+            $types = str_repeat('i', count($message_ids) + 1);
+            $params = array_merge([$user_id], $message_ids);
             $stmt->bind_param($types, ...$params);
             $stmt->execute();
             
@@ -332,17 +332,17 @@ try {
     // DELETE: حذف رسالة
     // ==============================================
     if ($method === 'DELETE') {
-        $chat_id = (int)($_GET['chat_id'] ?? 0);
+        $message_id = (int)($_GET['message_id'] ?? $_GET['chat_id'] ?? 0);
         
-        if ($chat_id <= 0) {
+        if ($message_id <= 0) {
             respond(['success' => false, 'message' => 'معرّف الرسالة مطلوب'], 400);
         }
         
         // التحقق من أن المستخدم هو المرسل
         $stmt = $conn->prepare(
-            "DELETE FROM chats WHERE chat_id = ? AND sender_id = ?"
+            "DELETE FROM messages WHERE message_id = ? AND sender_id = ?"
         );
-        $stmt->bind_param('ii', $chat_id, $user_id);
+        $stmt->bind_param('ii', $message_id, $user_id);
         $stmt->execute();
         
         $affected = $stmt->affected_rows;

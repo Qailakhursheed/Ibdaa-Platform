@@ -490,6 +490,27 @@ function setupChatEventListeners() {
 }
 
 function setupMessageEventListeners() {
+	// ربط زر الرسائل بفتح واجهة الدردشة
+	const messagesBell = document.getElementById('messagesBell');
+	if (messagesBell) {
+		messagesBell.addEventListener('click', (e) => {
+			e.preventDefault();
+			// التوجيه إلى صفحة الرسائل إذا كانت موجودة
+			if (typeof renderMessages === 'function') {
+				renderMessages();
+			} else {
+				// أو استخدام نظام التنقل الموجود
+				const messagesLink = document.querySelector('[data-page="messages"]');
+				if (messagesLink) {
+					messagesLink.click();
+				} else {
+					console.log('لا توجد واجهة دردشة متاحة');
+					showToast('نظام الدردشة غير متاح حالياً', 'info');
+				}
+			}
+		});
+	}
+	
 	// التنظيف عند مغادرة الصفحة
 	window.addEventListener('beforeunload', () => {
 		if (messagesPollingInterval) {

@@ -937,21 +937,270 @@ function displayAnnouncementsGrid(announcements) {
     lucide.createIcons();
 }
 
-function renderGrades() {
-    setPageHeader('الدرجات والشهادات', 'إدارة درجات الطلاب');
+async function renderGrades() {
+    setPageHeader('الدرجات والشهادات', 'إدارة درجات الطلاب وتصدير الشهادات');
     clearPageBody();
-    document.getElementById('pageBody').innerHTML = `
-        <div class="bg-white rounded-2xl shadow p-8 text-center">
-            <i data-lucide="graduation-cap" class="w-16 h-16 mx-auto text-violet-600 mb-4"></i>
-            <h3 class="text-xl font-bold mb-2">نظام الدرجات</h3>
-            <p class="text-slate-600 mb-4">قريباً - نظام متكامل لإدارة الدرجات والشهادات</p>
-            <button class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700">
-                استيراد الدرجات من Excel
-            </button>
+    
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = `
+        <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-4">
+                    <h3 class="text-xl font-bold text-slate-800">سجل الدرجات</h3>
+                    <select id="courseFilter" class="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500">
+                        <option value="">-- اختر دورة --</option>
+                    </select>
+                </div>
+                <button onclick="openImportGradesModal()" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700">
+                    <i data-lucide="upload" class="w-4 h-4 inline"></i>
+                    استيراد الدرجات
+                </button>
+            </div>
+            <div id="gradesTable" class="overflow-x-auto">
+                <div class="text-center py-8">
+                    <i data-lucide="graduation-cap" class="w-12 h-12 mx-auto text-slate-400"></i>
+                    <p class="mt-2 text-slate-600">الرجاء اختيار دورة لعرض الدرجات</p>
+                </div>
+            </div>
         </div>
     `;
     lucide.createIcons();
+
+    // Fetch courses for the dropdown
+    try {
+        const courseData = await fetchJson(API_ENDPOINTS.manageCourses);
+        if (courseData.success && courseData.courses) {
+            const select = document.getElementById('courseFilter');
+            courseData.courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.course_id;
+                option.textContent = course.title;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching courses:', error);
+    }
+
+    // Add event listener to the dropdown
+    document.getElementById('courseFilter').addEventListener('change', async (e) => {
+        const courseId = e.target.value;
+        if (courseId) {
+            document.getElementById('gradesTable').innerHTML = `
+                <div class="text-center py-8">
+                    <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto text-sky-600"></i>
+                    <p class="mt-2 text-slate-600">جاري تحميل الدرجات...</p>
+                </div>
+            `;
+            lucide.createIcons();
+            try {
+                const gradesData = await fetchJson(`${API_ENDPOINTS.manageGrades}?course_id=${courseId}`);
+                if (gradesData.success) {
+                    displayGradesTable(gradesData.data);
+                } else {
+                    document.getElementById('gradesTable').innerHTML = `<p class="text-red-500">فشل في جلب الدرجات.</p>`;
+                }
+            } catch (error) {
+                console.error('Error fetching grades:', error);
+                document.getElementById('gradesTable').innerHTML = `<p class="text-red-500">حدث خطأ أثناء جلب الدرجات.</p>`;
+            }
+        } else {
+            document.getElementById('gradesTable').innerHTML = `
+                <div class="text-center py-8">
+                    <i data-lucide="graduation-cap" class="w-12 h-12 mx-auto text-slate-400"></i>
+                    <p class="mt-2 text-slate-600">الرجاء اختيار دورة لعرض الدرجات</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+    });
 }
+
+function displayGradesTable(grades) {
+    const container = document.getElementById('gradesTable');
+    if (!grades || grades.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <i data-lucide="award" class="w-12 h-12 mx-auto text-slate-400"></i>
+                <p class="mt-2 text-slate-600">لا توجد درجات مسجلة لهذه الدورة</p>
+            </div>
+        `;
+        lucide.createIcons();
+        return;
+    }
+
+    const tableHtml = `
+        <table class="w-full">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="px-4 py-3 text-right text-sm font-semibold text-slate-700">اسم الطالب</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold text-slate-700">التقييم</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold text-slate-700">الدرجة</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold text-slate-700">تاريخ الإدخال</th>
+                    <th class="px-4 py-3 text-center text-sm font-semibold text-slate-700">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                ${grades.map(grade => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-sm">${escapeHtml(grade.full_name)}</td>
+                        <td class="px-4 py-3 text-sm">${escapeHtml(grade.assignment_name)}</td>
+                        <td class="px-4 py-3 text-sm font-bold">${escapeHtml(grade.grade_value)} / ${escapeHtml(grade.max_grade)}</td>
+                        <td class="px-4 py-3 text-sm">${formatDateTime(grade.created_at)}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="editGrade(${grade.grade_id})" class="text-sky-600 hover:text-sky-700 mx-1">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteGrade(${grade.grade_id})" class="text-red-600 hover:text-red-700 mx-1">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    container.innerHTML = tableHtml;
+    lucide.createIcons();
+}
+
+function openImportGradesModal() {
+    const modalContent = `
+        <form id="importGradesForm" class="space-y-4">
+            <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-violet-500 transition cursor-pointer" id="dropzone">
+                <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto text-slate-400 mb-4"></i>
+                <p class="text-slate-600 mb-2">اسحب وأفلت ملف Excel هنا، أو انقر للاختيار</p>
+                <p class="text-sm text-slate-500">الملفات المدعومة: .xlsx, .xls, .csv</p>
+                <input type="file" name="import_file" id="import_file_input" accept=".xlsx,.xls,.csv" class="hidden">
+            </div>
+            <div id="fileName" class="text-center text-slate-600 font-medium"></div>
+            <div id="importResult" class="hidden mt-4"></div>
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700" disabled>
+                    <i data-lucide="upload" class="w-4 h-4 inline"></i>
+                    بدء الاستيراد
+                </button>
+                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    `;
+
+    openModal('استيراد الدرجات من ملف', modalContent);
+    lucide.createIcons();
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('import_file_input');
+    const fileNameDisplay = document.getElementById('fileName');
+    const submitButton = document.querySelector('#importGradesForm button[type="submit"]');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            submitButton.disabled = false;
+        }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-violet-500', 'bg-violet-50');
+    });
+
+    dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-violet-500', 'bg-violet-50');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-violet-500', 'bg-violet-50');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            submitButton.disabled = false;
+        }
+    });
+
+    document.getElementById('importGradesForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        if (!formData.get('import_file')) {
+            showToast('الرجاء اختيار ملف أولاً', 'error');
+            return;
+        }
+
+        submitButton.innerHTML = '<i data-lucide="loader" class="w-4 h-4 inline animate-spin"></i> جاري المعالجة...';
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch(API_ENDPOINTS.manageImports, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    // Let the browser set the Content-Type for FormData
+                }
+            });
+
+            const result = await response.json();
+            const resultContainer = document.getElementById('importResult');
+            
+            if (result.success) {
+                let summaryHtml = `
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                        <h4 class="font-bold text-emerald-800 mb-2">✓ تمت المعالجة بنجاح</h4>
+                        <ul class="list-disc list-inside text-sm text-slate-700">
+                            <li>الصفوف المعالجة: ${result.summary.processed_rows}</li>
+                            <li>مستخدمون جدد: ${result.summary.created_users}</li>
+                            <li>مستخدمون تم تحديثهم: ${result.summary.updated_users}</li>
+                            <li>تسجيلات جديدة: ${result.summary.created_enrollments}</li>
+                            <li>درجات جديدة: ${result.summary.created_grades}</li>
+                        </ul>
+                `;
+                if (result.summary.warnings.length > 0) {
+                    summaryHtml += `<h5 class="font-bold mt-3 mb-1 text-amber-800">تحذيرات:</h5>
+                                    <ul class="list-disc list-inside text-sm text-amber-700 max-h-24 overflow-y-auto">
+                                        ${result.summary.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+                                    </ul>`;
+                }
+                if (result.summary.errors.length > 0) {
+                    summaryHtml += `<h5 class="font-bold mt-3 mb-1 text-red-800">أخطاء:</h5>
+                                    <ul class="list-disc list-inside text-sm text-red-700 max-h-24 overflow-y-auto">
+                                        ${result.summary.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('')}
+                                    </ul>`;
+                }
+                summaryHtml += `</div>`;
+                resultContainer.innerHTML = summaryHtml;
+                showToast('تم استيراد الملف بنجاح!', 'success');
+                // Refresh the grades table if a course is selected
+                const courseId = document.getElementById('courseFilter').value;
+                if (courseId) {
+                    document.getElementById('courseFilter').dispatchEvent(new Event('change'));
+                }
+            } else {
+                resultContainer.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <h4 class="font-bold text-red-800 mb-2">✗ فشل الاستيراد</h4>
+                        <p class="text-sm text-slate-700">${escapeHtml(result.message)}</p>
+                    </div>
+                `;
+                showToast(result.message || 'فشل استيراد الملف', 'error');
+            }
+            resultContainer.classList.remove('hidden');
+
+        } catch (error) {
+            console.error('Import error:', error);
+            showToast('حدث خطأ فادح أثناء الاستيراد', 'error');
+        } finally {
+            submitButton.innerHTML = '<i data-lucide="upload" class="w-4 h-4 inline"></i> بدء الاستيراد';
+            submitButton.disabled = false;
+            lucide.createIcons();
+        }
+    });
+}
+
 
 async function renderAnalytics() {
     setPageHeader('التحليلات والتقارير', 'رسوم بيانية متقدمة بتقنية الذكاء الاصطناعي');
@@ -1670,24 +1919,136 @@ function renderGraduates() {
 }
 
 function renderImports() {
-    setPageHeader('الاستيراد الذكي', 'استيراد البيانات من Excel');
+    setPageHeader('الاستيراد الذكي', 'استيراد بيانات الطلاب والدرجات من ملف Excel');
     clearPageBody();
-    document.getElementById('pageBody').innerHTML = `
+    
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = `
         <div class="bg-white rounded-2xl shadow p-8">
-            <div class="text-center mb-6">
-                <i data-lucide="file-up" class="w-16 h-16 mx-auto text-emerald-600 mb-4"></i>
-                <h3 class="text-xl font-bold mb-2">استيراد البيانات</h3>
-                <p class="text-slate-600">قم برفع ملف Excel لاستيراد البيانات</p>
-            </div>
-            <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-emerald-500 transition cursor-pointer">
-                <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto text-slate-400 mb-4"></i>
-                <p class="text-slate-600 mb-2">اسحب وأفلت الملف هنا</p>
-                <p class="text-sm text-slate-500">أو انقر للاختيار</p>
-                <input type="file" accept=".xlsx,.xls" class="hidden">
-            </div>
+            <form id="importGradesForm" class="space-y-4">
+                <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-violet-500 transition cursor-pointer" id="dropzone">
+                    <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto text-slate-400 mb-4"></i>
+                    <p class="text-slate-600 mb-2">اسحب وأفلت ملف Excel هنا، أو انقر للاختيار</p>
+                    <p class="text-sm text-slate-500">الملفات المدعومة: .xlsx, .xls, .csv</p>
+                    <input type="file" name="import_file" id="import_file_input" accept=".xlsx,.xls,.csv" class="hidden">
+                </div>
+                <div id="fileName" class="text-center text-slate-600 font-medium"></div>
+                <div id="importResult" class="hidden mt-4"></div>
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700" disabled>
+                        <i data-lucide="upload" class="w-4 h-4 inline"></i>
+                        بدء الاستيراد
+                    </button>
+                </div>
+            </form>
         </div>
     `;
     lucide.createIcons();
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('import_file_input');
+    const fileNameDisplay = document.getElementById('fileName');
+    const submitButton = document.querySelector('#importGradesForm button[type="submit"]');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            submitButton.disabled = false;
+        }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-violet-500', 'bg-violet-50');
+    });
+
+    dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-violet-500', 'bg-violet-50');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-violet-500', 'bg-violet-50');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            submitButton.disabled = false;
+        }
+    });
+
+    document.getElementById('importGradesForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        if (!formData.get('import_file')) {
+            showToast('الرجاء اختيار ملف أولاً', 'error');
+            return;
+        }
+
+        submitButton.innerHTML = '<i data-lucide="loader" class="w-4 h-4 inline animate-spin"></i> جاري المعالجة...';
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch(API_ENDPOINTS.manageImports, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    // Let the browser set the Content-Type for FormData
+                }
+            });
+
+            const result = await response.json();
+            const resultContainer = document.getElementById('importResult');
+            
+            if (result.success) {
+                let summaryHtml = `
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                        <h4 class="font-bold text-emerald-800 mb-2">✓ تمت المعالجة بنجاح</h4>
+                        <ul class="list-disc list-inside text-sm text-slate-700">
+                            <li>الصفوف المعالجة: ${result.summary.processed_rows}</li>
+                            <li>مستخدمون جدد: ${result.summary.created_users}</li>
+                            <li>مستخدمون تم تحديثهم: ${result.summary.updated_users}</li>
+                            <li>تسجيلات جديدة: ${result.summary.created_enrollments}</li>
+                            <li>درجات جديدة: ${result.summary.created_grades}</li>
+                        </ul>
+                `;
+                if (result.summary.warnings.length > 0) {
+                    summaryHtml += `<h5 class="font-bold mt-3 mb-1 text-amber-800">تحذيرات:</h5>
+                                    <ul class="list-disc list-inside text-sm text-amber-700 max-h-24 overflow-y-auto">
+                                        ${result.summary.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+                                    </ul>`;
+                }
+                if (result.summary.errors.length > 0) {
+                    summaryHtml += `<h5 class="font-bold mt-3 mb-1 text-red-800">أخطاء:</h5>
+                                    <ul class="list-disc list-inside text-sm text-red-700 max-h-24 overflow-y-auto">
+                                        ${result.summary.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('')}
+                                    </ul>`;
+                }
+                summaryHtml += `</div>`;
+                resultContainer.innerHTML = summaryHtml;
+                showToast('تم استيراد الملف بنجاح!', 'success');
+            } else {
+                resultContainer.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <h4 class="font-bold text-red-800 mb-2">✗ فشل الاستيراد</h4>
+                        <p class="text-sm text-slate-700">${escapeHtml(result.message)}</p>
+                    </div>
+                `;
+                showToast(result.message || 'فشل استيراد الملف', 'error');
+            }
+            resultContainer.classList.remove('hidden');
+
+        } catch (error) {
+            console.error('Import error:', error);
+            showToast('حدث خطأ فادح أثناء الاستيراد', 'error');
+        } finally {
+            submitButton.innerHTML = '<i data-lucide="upload" class="w-4 h-4 inline"></i> بدء الاستيراد';
+            submitButton.disabled = false;
+            lucide.createIcons();
+        }
+    });
 }
 
 function renderSettings() {

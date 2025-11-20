@@ -27,7 +27,16 @@ if (AntiDetection::detectBot() || AntiDetection::detectFingerprinting()) {
 
 // التحقق من تسجيل الدخول مسبقاً
 if (isset($_SESSION['user_id'])) {
-    header("Location: student-dashboard.php");
+    $userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'student';
+    switch ($userRole) {
+        case 'manager':
+        case 'technical':
+        case 'trainer':
+            header("Location: ../Manager/dashboard_router.php");
+            break;
+        default:
+            header("Location: student-dashboard.php");
+    }
     exit;
 }
 
@@ -71,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $warningMessage = $rateLimiter->getErrorMessage($rateStatus);
                 }
                 
-                $stmt = $conn->prepare("SELECT id, full_name, email, password_hash, verified, photo_path FROM users WHERE email = ?");
+                $stmt = $conn->prepare("SELECT id, full_name, email, password_hash, role, verified, photo_path FROM users WHERE email = ?");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -107,19 +116,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $rateLimiter->recordAttempt($email, true);
                         $rateLimiter->clearAttempts($email);
                         
+                        $userRole = $user['role'] ?? 'student';
+                        
                         // استخدام SessionSecurity للتسجيل الآمن
                         SessionSecurity::login([
                             'id' => $user['id'],
                             'full_name' => $user['full_name'],
                             'email' => $user['email'],
-                            'role' => 'student',
+                            'role' => $userRole,
                             'photo' => $user['photo_path']
                         ]);
                         
                         // تجديد CSRF Token
                         CSRF::refreshToken();
                         
-                        header("Location: student-dashboard.php");
+                        // التوجيه حسب الدور
+                        switch ($userRole) {
+                            case 'manager':
+                            case 'technical':
+                            case 'trainer':
+                                header("Location: ../Manager/dashboard_router.php");
+                                break;
+                            default:
+                                header("Location: student-dashboard.php");
+                        }
                         exit;
                     }
                 }
