@@ -46,6 +46,8 @@ function requireManagerAccess($userId, $userRole) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+const UPLOAD_DIR = __DIR__ . '/../../uploads/announcements/';
+const BASE_URL = '/uploads/announcements/';
 
 try {
     if ($method === 'GET') {
@@ -53,7 +55,7 @@ try {
         $limit = isset($_GET['limit']) ? max(1, min(100, (int) $_GET['limit'])) : 50;
 
         if ($id > 0) {
-            $stmt = $conn->prepare('SELECT id, title, content, created_at, updated_at FROM announcements WHERE id = ? LIMIT 1');
+            $stmt = $conn->prepare('SELECT id, title, content, media_url, created_at, updated_at FROM notifications WHERE id = ? LIMIT 1');
             $stmt->bind_param('i', $id);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -67,7 +69,7 @@ try {
             respond(true, '', ['data' => $announcement]);
         }
 
-        $stmt = $conn->prepare('SELECT id, title, content, created_at, updated_at FROM announcements ORDER BY created_at DESC LIMIT ?');
+        $stmt = $conn->prepare('SELECT id, title, content, media_url, created_at, updated_at FROM notifications ORDER BY created_at DESC LIMIT ?');
         $stmt->bind_param('i', $limit);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -83,19 +85,32 @@ try {
     // كل العمليات الأخرى تتطلب صلاحيات المدير/الفني
     requireManagerAccess($userId, $userRole);
 
-    $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-    $action = $payload['action'] ?? '';
+    // For POST, we use $_POST and $_FILES instead of php://input
+    $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
-        $title = trim($payload['title'] ?? '');
-        $content = trim($payload['content'] ?? '');
+        $title = trim($_POST['title'] ?? '');
+        $content = trim($_POST['content'] ?? '');
+        $media_url = null;
 
         if ($title === '' || $content === '') {
             respond(false, 'يرجى تعبئة عنوان ومحتوى الإعلان');
         }
 
-        $stmt = $conn->prepare('INSERT INTO announcements (title, content) VALUES (?, ?)');
-        $stmt->bind_param('ss', $title, $content);
+        if (isset($_FILES['media']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['media'];
+            $fileName = uniqid() . '-' . basename($file['name']);
+            $targetPath = UPLOAD_DIR . $fileName;
+
+            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                $media_url = BASE_URL . $fileName;
+            } else {
+                respond(false, 'فشل رفع الملف');
+            }
+        }
+
+        $stmt = $conn->prepare('INSERT INTO notifications (title, content, media_url, user_id) VALUES (?, ?, ?, ?)');
+        $stmt->bind_param('sssi', $title, $content, $media_url, $userId);
         if (!$stmt->execute()) {
             $stmt->close();
             respond(false, 'فشل إنشاء الإعلان: ' . $stmt->error);
@@ -103,7 +118,7 @@ try {
         $newId = $stmt->insert_id;
         $stmt->close();
 
-        $stmt = $conn->prepare('SELECT id, title, content, created_at, updated_at FROM announcements WHERE id = ? LIMIT 1');
+        $stmt = $conn->prepare('SELECT id, title, content, media_url, created_at, updated_at FROM notifications WHERE id = ? LIMIT 1');
         $stmt->bind_param('i', $newId);
         $stmt->execute();
         $announcement = $stmt->get_result()->fetch_assoc();
@@ -113,23 +128,44 @@ try {
     }
 
     if ($action === 'update') {
-        $id = isset($payload['id']) ? (int) $payload['id'] : 0;
-        $title = trim($payload['title'] ?? '');
-        $content = trim($payload['content'] ?? '');
+        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        $title = trim($_POST['title'] ?? '');
+        $content = trim($_POST['content'] ?? '');
+        $media_url = $_POST['existing_media_url'] ?? null;
 
         if ($id <= 0 || $title === '' || $content === '') {
             respond(false, 'بيانات التحديث غير مكتملة');
         }
 
-        $stmt = $conn->prepare('UPDATE announcements SET title = ?, content = ?, updated_at = NOW() WHERE id = ?');
-        $stmt->bind_param('ssi', $title, $content, $id);
+        if (isset($_FILES['media']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
+            // Delete old file if it exists
+            if ($media_url) {
+                $oldFilePath = UPLOAD_DIR . basename($media_url);
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                }
+            }
+
+            $file = $_FILES['media'];
+            $fileName = uniqid() . '-' . basename($file['name']);
+            $targetPath = UPLOAD_DIR . $fileName;
+
+            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                $media_url = BASE_URL . $fileName;
+            } else {
+                respond(false, 'فشل رفع الملف الجديد');
+            }
+        }
+
+        $stmt = $conn->prepare('UPDATE notifications SET title = ?, content = ?, media_url = ?, updated_at = NOW() WHERE id = ?');
+        $stmt->bind_param('sssi', $title, $content, $media_url, $id);
         if (!$stmt->execute()) {
             $stmt->close();
             respond(false, 'فشل تحديث الإعلان: ' . $stmt->error);
         }
         $stmt->close();
 
-        $stmt = $conn->prepare('SELECT id, title, content, created_at, updated_at FROM announcements WHERE id = ? LIMIT 1');
+        $stmt = $conn->prepare('SELECT id, title, content, media_url, created_at, updated_at FROM notifications WHERE id = ? LIMIT 1');
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $announcement = $stmt->get_result()->fetch_assoc();
@@ -139,12 +175,28 @@ try {
     }
 
     if ($action === 'delete') {
+        $payload = json_decode(file_get_contents('php://input'), true) ?? [];
         $id = isset($payload['id']) ? (int) $payload['id'] : 0;
         if ($id <= 0) {
             respond(false, 'معرّف الإعلان مطلوب للحذف');
         }
 
-        $stmt = $conn->prepare('DELETE FROM announcements WHERE id = ?');
+        // Get media_url before deleting
+        $stmt = $conn->prepare('SELECT media_url FROM notifications WHERE id = ?');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $announcement = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($announcement && $announcement['media_url']) {
+            $filePath = UPLOAD_DIR . basename($announcement['media_url']);
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        $stmt = $conn->prepare('DELETE FROM notifications WHERE id = ?');
         $stmt->bind_param('i', $id);
         if (!$stmt->execute()) {
             $stmt->close();

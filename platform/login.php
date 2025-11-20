@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $warningMessage = $rateLimiter->getErrorMessage($rateStatus);
                 }
                 
-                $stmt = $conn->prepare("SELECT id, full_name, email, password_hash, role, verified, photo_path FROM users WHERE email = ?");
+                $stmt = $conn->prepare("SELECT id, full_name, email, password_hash, role, verified, photo_path, account_status, payment_complete FROM users WHERE email = ?");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -110,7 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (isset($_SESSION['verification_link']) && $_SESSION['pending_email'] === $email) {
                             $error .= '<br><small>للاختبار: <a href="' . $_SESSION['verification_link'] . '" class="underline text-yellow-300">اضغط هنا للتفعيل</a></small>';
                         }
-                    } 
+                    }
+                    // التحقق من حالة الحساب والدفع
+                    elseif ($user['account_status'] === 'pending' || $user['payment_complete'] == 0) {
+                        $error = "حسابك قيد المراجعة أو لم يتم تأكيد الدفع بعد. يرجى التواصل مع الإدارة لتفعيل الحساب.";
+                    }
                     else {
                         // تسجيل دخول ناجح
                         $rateLimiter->recordAttempt($email, true);
@@ -239,10 +243,6 @@ $conn->close();
       <a href="signup.php" class="text-indigo-300 hover:text-indigo-200 font-semibold">إنشاء حساب جديد</a>
     </p>
   </div>
-  </div>
-
-  <!-- Ensure chatbot is available on login page -->
-  <link rel="stylesheet" href="/platform/css/chatbot.css">
-  <script src="/platform/js/chatbot.js"></script>
-  </body>
+  <script src="js/watermark.js"></script>
+</body>
 </html>

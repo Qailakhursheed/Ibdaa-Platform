@@ -150,6 +150,18 @@ try {
                         <i data-lucide="sparkles" class="w-4 h-4"></i>
                         <span>توليد الصور AI</span>
                     </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="ai-import">
+                        <i data-lucide="wand-2" class="w-4 h-4"></i>
+                        <span>الاستيراد الشامل AI</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="certificate-designer">
+                        <i data-lucide="award" class="w-4 h-4"></i>
+                        <span>مصمم الشهادات</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="ai-charts">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        <span>الرسوم البيانية AI</span>
+                    </a>
                 </div>
             </div>
 

@@ -11,6 +11,20 @@ header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
+        http_response_code(500);
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        echo json_encode([
+            'success' => false,
+            'message' => 'Fatal Error: ' . $error['message']
+        ], JSON_UNESCAPED_UNICODE);
+    }
+});
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../../platform/db.php';
 
@@ -192,7 +206,7 @@ if ($action === 'get_exam' && $method === 'GET') {
         $stmt = $conn->prepare("SELECT * FROM exam_attempts WHERE exam_id = ? AND student_id = ?");
         $stmt->bind_param('ii', $exam_id, $user_id);
         $stmt->execute();
-        $attempt = $stmt->get_result()->fetch_assoc();
+        $attempt = stmt_get_result_compat($stmt)->fetch_assoc();
         $stmt->close();
 
         if ($attempt && $attempt['status'] === 'completed') {
@@ -215,7 +229,7 @@ if ($action === 'get_exam' && $method === 'GET') {
     ");
     $stmt->bind_param('i', $exam_id);
     $stmt->execute();
-    $exam = $stmt->get_result()->fetch_assoc();
+    $exam = stmt_get_result_compat($stmt)->fetch_assoc();
     $stmt->close();
 
     if (!$exam) {
@@ -232,7 +246,7 @@ if ($action === 'get_exam' && $method === 'GET') {
     ");
     $stmt->bind_param('i', $exam_id);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $result = stmt_get_result_compat($stmt);
     $questions = [];
     
     while ($row = $result->fetch_assoc()) {
@@ -419,7 +433,7 @@ if ($action === 'grade' && $method === 'POST') {
     ");
     $stmt->bind_param('i', $attempt_id);
     $stmt->execute();
-    $attempt = $stmt->get_result()->fetch_assoc();
+    $attempt = stmt_get_result_compat($stmt)->fetch_assoc();
     $stmt->close();
 
     if ($attempt['obtained_marks'] >= $attempt['passing_marks']) {
@@ -470,12 +484,153 @@ if ($action === 'my_results' && $method === 'GET') {
     ");
     $stmt->bind_param('i', $user_id);
     $stmt->execute();
-    $results = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $results = stmt_get_result_compat($stmt)->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
     echo json_encode([
         'success' => true,
         'results' => $results
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ============================================
+// LIST EXAMS (Manager/Technical/Trainer)
+// ============================================
+if ($action === 'list' && $method === 'GET') {
+    if (!hasPermission($user_role, 'view_all') && !hasPermission($user_role, 'view_assigned')) {
+        echo json_encode(['success' => false, 'message' => 'غير مصرح لك بعرض الاختبارات'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $where_clause = "1=1";
+    $params = [];
+    $types = "";
+
+    if ($user_role === 'trainer') {
+        $where_clause .= " AND created_by = ?";
+        $params[] = $user_id;
+        $types .= "i";
+    }
+
+    $stmt = $conn->prepare("
+        SELECT e.*, c.title as course_title, u.full_name as creator_name,
+               (SELECT COUNT(*) FROM exam_attempts WHERE exam_id = e.exam_id) as attempts_count
+        FROM exams e
+        LEFT JOIN courses c ON e.course_id = c.course_id
+        LEFT JOIN users u ON e.created_by = u.id
+        WHERE $where_clause
+        ORDER BY e.created_at DESC
+    ");
+
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+
+    $stmt->execute();
+    $exams = stmt_get_result_compat($stmt)->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    echo json_encode(['success' => true, 'exams' => $exams], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ============================================
+// DELETE EXAM (Manager)
+// ============================================
+if ($action === 'delete' && $method === 'POST') {
+    if (!hasPermission($user_role, 'delete')) {
+        echo json_encode(['success' => false, 'message' => 'غير مصرح لك بحذف الاختبارات'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $exam_id = (int)($_POST['exam_id'] ?? 0);
+    
+    if ($exam_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'معرف الاختبار غير صحيح'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Check if exam has attempts
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM exam_attempts WHERE exam_id = ?");
+    $stmt->bind_param('i', $exam_id);
+    $stmt->execute();
+    $result = stmt_get_result_compat($stmt)->fetch_assoc();
+    $stmt->close();
+
+    if ($result['count'] > 0) {
+        echo json_encode(['success' => false, 'message' => 'لا يمكن حذف اختبار تم إجراؤه من قبل الطلاب'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare("DELETE FROM exam_questions WHERE exam_id = ?");
+        $stmt->bind_param('i', $exam_id);
+        $stmt->execute();
+        $stmt->close();
+
+        $stmt = $conn->prepare("DELETE FROM exams WHERE exam_id = ?");
+        $stmt->bind_param('i', $exam_id);
+        $stmt->execute();
+        $stmt->close();
+
+        $conn->commit();
+        echo json_encode(['success' => true, 'message' => 'تم حذف الاختبار بنجاح'], JSON_UNESCAPED_UNICODE);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['success' => false, 'message' => 'خطأ في الحذف'], JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
+// ============================================
+// GENERATE AI QUESTIONS (Manager/Technical)
+// ============================================
+if ($action === 'generate_ai_questions' && $method === 'POST') {
+    if (!hasPermission($user_role, 'create')) {
+        echo json_encode(['success' => false, 'message' => 'غير مصرح لك'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $data = json_decode(file_get_contents('php://input'), true);
+    $topic = $data['topic'] ?? '';
+    $count = (int)($data['count'] ?? 5);
+    $difficulty = $data['difficulty'] ?? 'medium';
+
+    if (empty($topic)) {
+        echo json_encode(['success' => false, 'message' => 'الموضوع مطلوب'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Mock AI Generation (Replace with real API call if available)
+    // This simulates an AI response based on the topic
+    $questions = [];
+    $types = ['mcq', 'true_false'];
+    
+    for ($i = 0; $i < $count; $i++) {
+        $type = $types[array_rand($types)];
+        $q = [
+            'text' => "سؤال تجريبي عن $topic رقم " . ($i + 1),
+            'type' => $type,
+            'marks' => 1
+        ];
+
+        if ($type === 'mcq') {
+            $q['options'] = ["خيار 1", "خيار 2", "خيار 3", "خيار 4"];
+            $q['correct_answer'] = "خيار 1";
+        } else {
+            $q['options'] = ["صح", "خطأ"];
+            $q['correct_answer'] = "صح";
+        }
+        
+        $questions[] = $q;
+    }
+
+    echo json_encode([
+        'success' => true, 
+        'questions' => $questions,
+        'message' => 'تم توليد الأسئلة بنجاح باستخدام الذكاء الاصطناعي (محاكاة)'
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -493,7 +648,7 @@ function notifyStudents($conn, $exam_id) {
     ");
     $stmt->bind_param('i', $exam_id);
     $stmt->execute();
-    $students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $students = stmt_get_result_compat($stmt)->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
     foreach ($students as $student) {
@@ -518,7 +673,7 @@ function autoGradeExam($conn, $attempt_id) {
     ");
     $stmt->bind_param('i', $attempt_id);
     $stmt->execute();
-    $answers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $answers = stmt_get_result_compat($stmt)->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
     $total_score = 0;
@@ -548,7 +703,7 @@ function calculateTotalScore($conn, $attempt_id) {
     ");
     $stmt->bind_param('i', $attempt_id);
     $stmt->execute();
-    $result = $stmt->get_result()->fetch_assoc();
+    $result = stmt_get_result_compat($stmt)->fetch_assoc();
     $stmt->close();
 
     return $result['total'] ?? 0;
@@ -563,7 +718,7 @@ function generateCertificateAutomatically($conn, $student_id, $course_id) {
     ");
     $stmt->bind_param('ii', $student_id, $course_id);
     $stmt->execute();
-    $existing = $stmt->get_result()->fetch_assoc();
+    $existing = stmt_get_result_compat($stmt)->fetch_assoc();
     $stmt->close();
 
     if ($existing) {

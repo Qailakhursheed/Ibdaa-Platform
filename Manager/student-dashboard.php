@@ -43,7 +43,8 @@ if ($conn->query("SHOW TABLES LIKE 'announcements'")->num_rows > 0) {
       <h1 class="text-2xl font-bold">لوحة المتدرب</h1>
       <div>
         <span class="ml-4">مرحبا، <?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
-        <a href="logout.php" class="ml-4 text-sm text-red-600">تسجيل خروج</a>
+        <a href="settings.php" class="ml-4 text-sm text-blue-600 hover:underline">الإعدادات</a>
+        <a href="logout.php" class="ml-4 text-sm text-red-600 hover:underline">تسجيل خروج</a>
       </div>
     </div>
 

@@ -351,7 +351,7 @@
 
             async loadExam() {
                 try {
-                    const response = await fetch(`../api/exams_system.php?action=get_exam&exam_id=${this.examId}`);
+                    const response = await fetch('api/exams_system.php?action=get_exam&exam_id=${this.examId}');
                     const data = await response.json();
 
                     if (data.success) {
@@ -387,7 +387,7 @@
                 formData.append('action', 'start_attempt');
                 formData.append('exam_id', this.examId);
 
-                const response = await fetch('../api/exams_system.php', {
+                const response = await fetch('api/exams_system.php', {
                     method: 'POST',
                     body: formData
                 });
@@ -567,7 +567,7 @@
                 };
 
                 try {
-                    const response = await fetch('../api/exams_system.php', {
+                    const response = await fetch('api/exams_system.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)

@@ -128,5 +128,6 @@ if (AntiDetection::detectBot()) {
   <!-- Chatbot widget styles & script -->
   <link rel="stylesheet" href="/platform/css/chatbot.css">
   <script src="/platform/js/chatbot.js"></script>
+  <script src="js/watermark.js"></script>
 </body>
 </html>

@@ -46,8 +46,13 @@ try {
     if ($result->num_rows === 0) die('Student not found');
     $student = $result->fetch_assoc();
 
+    // Determine Base URL dynamically
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+    $host = $_SERVER['HTTP_HOST'];
+    $baseUrl = "$protocol://$host/Ibdaa-Taiz";
+
     // Generate QR Code
-    $verifyUrl = 'http://localhost/Ibdaa-Taiz/platform/verify_student.php?id=' . $student_id;
+    $verifyUrl = "$baseUrl/platform/verify_student.php?id=" . $student_id;
     $qrOptions = new QROptions([
         'version' => 5,
         'outputType' => QRCode::OUTPUT_IMAGE_PNG,

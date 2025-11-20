@@ -239,17 +239,17 @@ if (!empty($errors)) {
 
 // إدراج الطلب في قاعدة البيانات
 $stmt = $conn->prepare("
-    INSERT INTO applications (
-        full_name, email, phone, birth_date, governorate, district,
-        course_id, course_name, id_file_path, photo_path, notes,
+    INSERT INTO registration_requests (
+        full_name, email, phone, dob, governorate, district,
+        course_id, id_file_path, photo_path, notes,
         status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
 ");
 
 $stmt->bind_param(
-    'ssssssissss',
+    'ssssssisss',
     $full_name, $email, $phone, $birth_date, $governorate, $district,
-    $course_id, $course_name, $id_file_path, $photo_path, $notes
+    $course_id, $id_file_path, $photo_path, $notes
 );
 
 if ($stmt->execute()) {

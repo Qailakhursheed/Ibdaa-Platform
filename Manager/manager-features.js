@@ -874,8 +874,8 @@ async function renderAnnouncements() {
                     إضافة إعلان جديد
                 </button>
             </div>
-            <div id="announcementsGrid" class="grid grid-cols-1 gap-4">
-                <div class="text-center py-8">
+            <div id="announcementsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="text-center py-8 col-span-full">
                     <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto text-violet-600"></i>
                     <p class="mt-2 text-slate-600">جاري التحميل...</p>
                 </div>
@@ -886,8 +886,8 @@ async function renderAnnouncements() {
     
     try {
         const data = await fetchJson(API_ENDPOINTS.manageAnnouncements);
-        if (data && data.announcements) {
-            displayAnnouncementsGrid(data.announcements);
+        if (data && data.data) {
+            displayAnnouncementsGrid(data.data);
         } else {
             displayAnnouncementsGrid([]);
         }
@@ -901,7 +901,7 @@ function displayAnnouncementsGrid(announcements) {
     const container = document.getElementById('announcementsGrid');
     if (!announcements || announcements.length === 0) {
         container.innerHTML = `
-            <div class="text-center py-8">
+            <div class="col-span-full text-center py-8">
                 <i data-lucide="megaphone" class="w-12 h-12 mx-auto text-slate-400"></i>
                 <p class="mt-2 text-slate-600">لا توجد إعلانات</p>
             </div>
@@ -911,23 +911,33 @@ function displayAnnouncementsGrid(announcements) {
     }
     
     const cardsHtml = announcements.map(announcement => `
-        <div class="border border-slate-200 rounded-xl p-5 hover:shadow-md transition">
-            <div class="flex items-start justify-between mb-3">
-                <h4 class="text-lg font-bold text-slate-800">${escapeHtml(announcement.title)}</h4>
-                <span class="px-2 py-1 text-xs rounded-full ${announcement.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
-                    ${announcement.is_active ? 'نشط' : 'غير نشط'}
-                </span>
-            </div>
-            <p class="text-sm text-slate-600 mb-3">${escapeHtml(announcement.content || '').substring(0, 100)}...</p>
-            <div class="flex items-center justify-between text-xs text-slate-500">
-                <span><i data-lucide="calendar" class="w-4 h-4 inline"></i> ${formatDateTime(announcement.created_at)}</span>
-                <div class="flex gap-2">
-                    <button onclick="editAnnouncement(${announcement.id})" class="text-sky-600 hover:text-sky-700">
-                        <i data-lucide="edit" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="deleteAnnouncement(${announcement.id})" class="text-red-600 hover:text-red-700">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
+            ${announcement.media_url ? `
+                <div class="w-full h-48 bg-slate-100">
+                    ${announcement.media_url.match(/\.(jpeg|jpg|gif|png)$/) != null ?
+                        `<img src="${'../' + announcement.media_url}" alt="${escapeHtml(announcement.title)}" class="w-full h-full object-cover">` :
+                        `<video src="${'../' + announcement.media_url}" class="w-full h-full object-cover" controls></video>`
+                    }
+                </div>
+            ` : ''}
+            <div class="p-5 flex flex-col flex-grow">
+                <div class="flex items-start justify-between mb-3">
+                    <h4 class="text-lg font-bold text-slate-800">${escapeHtml(announcement.title)}</h4>
+                    <span class="px-2 py-1 text-xs rounded-full ${announcement.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+                        ${announcement.is_active ? 'نشط' : 'غير نشط'}
+                    </span>
+                </div>
+                <p class="text-sm text-slate-600 mb-3 flex-grow">${escapeHtml(announcement.content || '').substring(0, 100)}...</p>
+                <div class="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
+                    <span><i data-lucide="calendar" class="w-4 h-4 inline"></i> ${formatDateTime(announcement.created_at)}</span>
+                    <div class="flex gap-2">
+                        <button onclick="openAddAnnouncementModal(${announcement.id})" class="text-sky-600 hover:text-sky-700">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteAnnouncement(${announcement.id})" class="text-red-600 hover:text-red-700">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -935,6 +945,100 @@ function displayAnnouncementsGrid(announcements) {
     
     container.innerHTML = cardsHtml;
     lucide.createIcons();
+}
+
+async function openAddAnnouncementModal(id = null) {
+    let announcement = null;
+    const modalTitle = id ? 'تعديل الإعلان' : 'إضافة إعلان جديد';
+
+    if (id) {
+        const response = await fetchJson(`${API_ENDPOINTS.manageAnnouncements}?id=${id}`);
+        if (response.success) {
+            announcement = response.data;
+        } else {
+            showToast('فشل في جلب بيانات الإعلان', 'error');
+            return;
+        }
+    }
+
+    const modalContent = `
+        <form id="addAnnouncementForm" class="space-y-4" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="${id ? 'update' : 'create'}">
+            ${id ? `<input type="hidden" name="id" value="${id}">` : ''}
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">العنوان</label>
+                <input type="text" name="title" required class="w-full px-4 py-2 border border-slate-300 rounded-lg" value="${announcement ? escapeHtml(announcement.title) : ''}">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">المحتوى</label>
+                <textarea name="content" rows="5" required class="w-full px-4 py-2 border border-slate-300 rounded-lg">${announcement ? escapeHtml(announcement.content) : ''}</textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">صورة أو فيديو (اختياري)</label>
+                <input type="file" name="media" accept="image/*,video/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100">
+                ${announcement && announcement.media_url ? `<p class="text-xs text-slate-500 mt-2">الملف الحالي: ${escapeHtml(announcement.media_url)}</p><input type="hidden" name="existing_media_url" value="${announcement.media_url}">` : ''}
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700">
+                    ${id ? 'حفظ التعديلات' : 'نشر الإعلان'}
+                </button>
+                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    `;
+    
+    openModal(modalTitle, modalContent);
+    
+    document.getElementById('addAnnouncementForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        try {
+            const response = await fetch(API_ENDPOINTS.manageAnnouncements, {
+                method: 'POST',
+                body: formData,
+                // Don't set Content-Type, browser will do it for multipart/form-data
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(result.message || 'تمت العملية بنجاح', 'success');
+                closeModal();
+                renderAnnouncements();
+            } else {
+                showToast(result.message || 'حدث خطأ ما', 'error');
+            }
+        } catch (error) {
+            showToast('فشل الاتصال بالخادم', 'error');
+        }
+    });
+}
+
+async function deleteAnnouncement(id) {
+    if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الإعلان؟')) return;
+
+    try {
+        const response = await fetch(API_ENDPOINTS.manageAnnouncements, {
+            method: 'POST', // Using POST to send a body with the delete action
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', id: id })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('تم حذف الإعلان بنجاح', 'success');
+            renderAnnouncements();
+        } else {
+            showToast(result.message || 'فشل حذف الإعلان', 'error');
+        }
+    } catch (error) {
+        showToast('فشل الاتصال بالخادم', 'error');
+    }
 }
 
 async function renderGrades() {
@@ -1998,7 +2102,6 @@ function renderImports() {
                     // Let the browser set the Content-Type for FormData
                 }
             });
-
             const result = await response.json();
             const resultContainer = document.getElementById('importResult');
             
@@ -2051,828 +2154,426 @@ function renderImports() {
     });
 }
 
-function renderSettings() {
-    setPageHeader('الإعدادات', 'إعدادات المنصة العامة');
+async function renderAIImages() {
+    setPageHeader('مولد الصور بالذكاء الاصطناعي', 'إنشاء صور فريدة باستخدام نماذج الذكاء الاصطناعي المتقدمة');
     clearPageBody();
-    document.getElementById('pageBody').innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white rounded-xl shadow p-6">
-                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <i data-lucide="building" class="w-5 h-5"></i>
-                    معلومات المنصة
-                </h3>
-                <div class="space-y-3">
+    
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- AI Image Generator Form -->
+            <div class="lg:col-span-1 bg-white rounded-2xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">إنشاء صورة جديدة</h3>
+                <form id="aiImageForm" class="space-y-4">
                     <div>
-                        <label class="text-sm text-slate-600">اسم المنصة</label>
-                        <input type="text" value="منصة إبداع تعز" class="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg">
+                        <label for="prompt" class="block text-sm font-medium text-slate-700 mb-2">وصف الصورة (Prompt)</label>
+                        <textarea id="prompt" name="prompt" rows="4" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500" placeholder="مثال: قطة ترتدي نظارة شمسية على الشاطئ"></textarea>
                     </div>
                     <div>
-                        <label class="text-sm text-slate-600">البريد الإلكتروني</label>
-                        <input type="email" value="info@ibdaa-taiz.edu" class="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg">
+                        <label for="style" class="block text-sm font-medium text-slate-700 mb-2">نمط الصورة</label>
+                        <select id="style" name="style" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500">
+                            <option value="photorealistic">واقعي</option>
+                            <option value="digital-art">فن رقمي</option>
+                            <option value="3d-model">نموذج ثلاثي الأبعاد</option>
+                            <option value="anime">أنمي</option>
+                            <option value="pixel-art">فن البكسل</option>
+                        </select>
                     </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow p-6">
-                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <i data-lucide="bell" class="w-5 h-5"></i>
-                    إعدادات الإشعارات
-                </h3>
-                <div class="space-y-3">
-                    <label class="flex items-center gap-3">
-                        <input type="checkbox" checked class="w-4 h-4">
-                        <span class="text-sm">إشعارات البريد الإلكتروني</span>
-                    </label>
-                    <label class="flex items-center gap-3">
-                        <input type="checkbox" checked class="w-4 h-4">
-                        <span class="text-sm">إشعارات الطلبات الجديدة</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-    `;
-    lucide.createIcons();
-}
-
-// Additional Modal Functions
-function openAddTrainerModal() {
-    const modalContent = `
-        <form id="addTrainerForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">الاسم الكامل</label>
-                <input type="text" name="name" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">البريد الإلكتروني</label>
-                <input type="email" name="email" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">التخصص</label>
-                <input type="text" name="specialty" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">كلمة المرور</label>
-                <input type="password" name="password" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-            </div>
-            <div class="flex gap-3 pt-4">
-                <button type="submit" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                    حفظ
-                </button>
-                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                    إلغاء
-                </button>
-            </div>
-        </form>
-    `;
-    
-    openModal('إضافة مدرب جديد', modalContent);
-    
-    document.getElementById('addTrainerForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData);
-        
-        try {
-            await fetchJson(API_ENDPOINTS.manageUsers, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'create',
-                    full_name: data.name,
-                    email: data.email,
-                    password: data.password,
-                    role: 'trainer',
-                    specialty: data.specialty || ''
-                })
-            });
-            showToast('تم إضافة المدرب بنجاح', 'success');
-            closeModal();
-            renderTrainers();
-        } catch (error) {
-            showToast('حدث خطأ أثناء إضافة المدرب', 'error');
-        }
-    });
-}
-
-function openAddAnnouncementModal() {
-    const modalContent = `
-        <form id="addAnnouncementForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">العنوان</label>
-                <input type="text" name="title" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">المحتوى</label>
-                <textarea name="content" required rows="4" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"></textarea>
-            </div>
-            <div>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" name="is_active" value="1" checked class="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500">
-                    <span class="text-sm text-slate-700">نشط</span>
-                </label>
-            </div>
-            <div class="flex gap-3 pt-4">
-                <button type="submit" class="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700">
-                    نشر الإعلان
-                </button>
-                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                    إلغاء
-                </button>
-            </div>
-        </form>
-    `;
-    
-    openModal('إضافة إعلان جديد', modalContent);
-    
-    document.getElementById('addAnnouncementForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData);
-        
-        try {
-            await fetchJson(API_ENDPOINTS.manageAnnouncements, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'create',
-                    title: data.title,
-                    content: data.content,
-                    is_active: data.is_active ? 1 : 0
-                })
-            });
-            showToast('تم نشر الإعلان بنجاح', 'success');
-            closeModal();
-            renderAnnouncements();
-        } catch (error) {
-            showToast('حدث خطأ أثناء نشر الإعلان', 'error');
-        }
-    });
-}
-
-// AI Image Generator
-function openAIImageGenerator() {
-    const modalContent = `
-        <div class="space-y-4">
-            <div class="bg-gradient-to-br from-violet-50 to-sky-50 rounded-lg p-4 border border-violet-200">
-                <div class="flex items-center gap-2 text-violet-700 mb-2">
-                    <i data-lucide="sparkles" class="w-5 h-5"></i>
-                    <span class="font-semibold">مولد الصور بالذكاء الاصطناعي</span>
-                </div>
-                <p class="text-sm text-slate-600">أنشئ صوراً مخصصة للإعلانات والدورات باستخدام AI</p>
+                    <div class="flex items-center justify-between">
+                        <label for="num_images" class="text-sm font-medium text-slate-700">عدد الصور</label>
+                        <input type="number" id="num_images" name="num_images" min="1" max="4" value="1" class="w-20 px-3 py-1 border border-slate-300 rounded-lg text-center">
+                    </div>
+                    <button type="submit" class="w-full px-4 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 font-semibold flex items-center justify-center gap-2">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        إنشاء
+                    </button>
+                </form>
             </div>
             
-            <form id="aiImageForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">وصف الصورة</label>
-                    <textarea name="prompt" required rows="3" placeholder="مثال: صورة احترافية لدورة برمجة Python..." class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500"></textarea>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">النمط</label>
-                        <select name="style" class="w-full px-4 py-2 border border-slate-300 rounded-lg">
-                            <option value="professional">احترافي</option>
-                            <option value="creative">إبداعي</option>
-                            <option value="minimal">بسيط</option>
-                            <option value="colorful">ملون</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">الحجم</label>
-                        <select name="size" class="w-full px-4 py-2 border border-slate-300 rounded-lg">
-                            <option value="1024x1024">مربع (1024x1024)</option>
-                            <option value="1024x768">أفقي (1024x768)</option>
-                            <option value="768x1024">عمودي (768x1024)</option>
-                        </select>
+            <!-- AI Image Results -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">النتائج</h3>
+                <div id="aiImageResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[300px]">
+                    <div class="flex flex-col items-center justify-center text-center text-slate-500 p-8">
+                        <i data-lucide="image" class="w-16 h-16 mb-4"></i>
+                        <p>ستظهر الصور التي تم إنشاؤها هنا.</p>
                     </div>
                 </div>
-                
-                <div id="aiImagePreview" class="hidden">
-                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-4">
-                        <img id="generatedImage" class="w-full rounded-lg" alt="Generated Image">
-                        <div class="mt-3 flex gap-2">
-                            <button type="button" onclick="downloadAIImage()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                                <i data-lucide="download" class="w-4 h-4 inline"></i>
-                                تحميل
-                            </button>
-                            <button type="button" onclick="useAIImage()" class="flex-1 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">
-                                <i data-lucide="check" class="w-4 h-4 inline"></i>
-                                استخدام
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700">
-                        <i data-lucide="wand-2" class="w-4 h-4 inline"></i>
-                        توليد الصورة
-                    </button>
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                        إلغاء
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     `;
-    
-    openModal('توليد صورة بالذكاء الاصطناعي', modalContent);
     lucide.createIcons();
     
     document.getElementById('aiImageForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const formData = new FormData(form);
         const data = Object.fromEntries(formData);
         
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 inline animate-spin"></i> جاري التوليد...';
-        submitBtn.disabled = true;
+        const resultsContainer = document.getElementById('aiImageResults');
+        resultsContainer.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center text-center text-slate-500 p-8">
+                <i data-lucide="loader" class="w-16 h-16 mb-4 animate-spin text-violet-600"></i>
+                <p>جاري إنشاء الصور، قد يستغرق هذا بعض الوقت...</p>
+            </div>
+        `;
         lucide.createIcons();
         
         try {
             const response = await fetchJson(API_ENDPOINTS.aiImages, {
                 method: 'POST',
-                body: JSON.stringify({
-                    action: 'generate',
-                    prompt: data.prompt,
-                    style: data.style,
-                    size: data.size
-                })
+                body: JSON.stringify(data)
             });
             
-            if (response.success && response.image_url) {
-                document.getElementById('generatedImage').src = response.image_url;
-                document.getElementById('aiImagePreview').classList.remove('hidden');
-                showToast('تم توليد الصورة بنجاح!', 'success');
+            if (response.success && response.images) {
+                displayAIImages(response.images);
             } else {
-                showToast('فشل توليد الصورة', 'error');
+                resultsContainer.innerHTML = `<p class="text-red-500 col-span-full text-center">${response.message || 'فشل في إنشاء الصور.'}</p>`;
             }
         } catch (error) {
-            showToast('حدث خطأ أثناء توليد الصورة', 'error');
-        } finally {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            lucide.createIcons();
+            console.error('Error generating images:', error);
+            resultsContainer.innerHTML = `<p class="text-red-500 col-span-full text-center">حدث خطأ أثناء إنشاء الصور.</p>`;
         }
     });
 }
 
-function downloadAIImage() {
-    const img = document.getElementById('generatedImage');
-    if (img && img.src) {
-        const link = document.createElement('a');
-        link.href = img.src;
-        link.download = `ai-image-${Date.now()}.png`;
-        link.click();
-        showToast('جاري تحميل الصورة...', 'info');
+function displayAIImages(images) {
+    const container = document.getElementById('aiImageResults');
+    if (!images || images.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center text-center text-slate-500 p-8">
+                <i data-lucide="image-off" class="w-16 h-16 mb-4"></i>
+                <p>لم يتم إرجاع أي صور.</p>
+            </div>
+        `;
+        lucide.createIcons();
+        return;
     }
-}
-
-function useAIImage() {
-    const img = document.getElementById('generatedImage');
-    if (img && img.src) {
-        // Store image URL for later use
-        localStorage.setItem('lastAIImage', img.src);
-        showToast('تم حفظ الصورة للاستخدام', 'success');
-        closeModal();
-    }
-}
-
-// Advanced Notifications System
-async function loadAdvancedNotifications() {
-    try {
-        const response = await fetchJson(API_ENDPOINTS.notifications);
-        if (response.success && response.notifications) {
-            displayAdvancedNotifications(response.notifications);
-        }
-    } catch (error) {
-        console.error('Error loading notifications:', error);
-    }
-}
-
-function displayAdvancedNotifications(notifications) {
-    const container = document.getElementById('notificationsPanel');
-    if (!container) return;
     
-    container.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-lg max-w-md">
-            <div class="p-4 border-b border-slate-200">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-slate-800">الإشعارات</h3>
-                    <button onclick="markAllNotificationsRead()" class="text-sm text-sky-600 hover:text-sky-700">
-                        تحديد الكل كمقروء
+    container.innerHTML = images.map(image => `
+        <div class="group relative rounded-lg overflow-hidden border border-slate-200">
+            <img src="${image.url}" alt="${escapeHtml(image.prompt)}" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                <div class="flex items-center gap-2">
+                    <a href="${image.url}" download="ai-image.png" class="p-2 bg-white/20 text-white rounded-full hover:bg-white/30">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                    </a>
+                    <button onclick="shareImage('${image.url}')" class="p-2 bg-white/20 text-white rounded-full hover:bg-white/30">
+                        <i data-lucide="share-2" class="w-5 h-5"></i>
                     </button>
                 </div>
             </div>
-            <div class="max-h-96 overflow-y-auto">
-                ${notifications.length === 0 ? `
-                    <div class="p-8 text-center">
-                        <i data-lucide="bell-off" class="w-12 h-12 mx-auto text-slate-400 mb-2"></i>
-                        <p class="text-slate-600">لا توجد إشعارات جديدة</p>
-                    </div>
-                ` : notifications.map(notif => `
-                    <div class="p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${notif.is_read ? 'opacity-60' : 'bg-sky-50'}"
-                         onclick="markNotificationRead(${notif.id})">
-                        <div class="flex items-start gap-3">
-                            <div class="flex-shrink-0">
-                                <div class="w-10 h-10 rounded-full ${getNotificationColor(notif.type)} flex items-center justify-center">
-                                    <i data-lucide="${getNotificationIcon(notif.type)}" class="w-5 h-5 text-white"></i>
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center justify-between mb-1">
-                                    <p class="text-sm font-semibold text-slate-800">${escapeHtml(notif.title)}</p>
-                                    ${!notif.is_read ? '<div class="w-2 h-2 bg-sky-600 rounded-full"></div>' : ''}
-                                </div>
-                                <p class="text-sm text-slate-600 mb-1">${escapeHtml(notif.message)}</p>
-                                <p class="text-xs text-slate-400">${formatDateTime(notif.created_at)}</p>
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
+        </div>
+    `).join('');
+    lucide.createIcons();
+}
+
+function renderSettings() {
+    setPageHeader('الإعدادات', 'إدارة إعدادات النظام');
+    clearPageBody();
+    document.getElementById('pageBody').innerHTML = `
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h3 class="text-xl font-bold">الإعدادات العامة</h3>
+            <p class="text-slate-600 mt-4">هذه الصفحة مخصصة لإدارة إعدادات النظام.</p>
         </div>
     `;
     lucide.createIcons();
 }
 
-function getNotificationColor(type) {
-    const colors = {
-        'success': 'bg-emerald-500',
-        'warning': 'bg-amber-500',
-        'error': 'bg-red-500',
-        'info': 'bg-sky-500',
-        'default': 'bg-slate-500'
-    };
-    return colors[type] || colors.default;
+async function renderAiImport() {
+    setPageHeader('الاستيراد الشامل (AI)', 'تحليل واستيراد أي نوع من الملفات باستخدام الذكاء الاصطناعي');
+    clearPageBody();
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = await (await fetch('dashboards/ai-import.php')).text();
 }
 
-function getNotificationIcon(type) {
+async function renderCertificateDesigner() {
+    setPageHeader('مصمم الشهادات', 'تصميم وتخصيص قوالب الشهادات');
+    clearPageBody();
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = await (await fetch('dashboards/certificate-designer.php')).text();
+}
+
+async function renderAiCharts() {
+    setPageHeader('الرسوم البيانية الهجينة (AI)', 'إنشاء رسوم بيانية تفاعلية وذكية من أي بيانات');
+    clearPageBody();
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = await (await fetch('dashboards/ai-charts.php')).text();
+}
+
+// ==============================================
+// Main App Logic
+// ==============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const pageRenderers = {
+        'dashboard': renderDashboard,
+        'trainees': renderTrainees,
+        'trainers': renderTrainers,
+        'courses': renderCourses,
+        'finance': renderFinance,
+        'requests': renderRequests,
+        'announcements': renderAnnouncements,
+        'grades': renderGrades,
+        'attendance': renderAttendance,
+        'id-cards': renderIDCards,
+        'graduates': renderGraduates,
+        'imports': renderImports,
+        'ai-images': renderAIImages,
+        'ai-import': renderAiImport,
+        'certificate-designer': renderCertificateDesigner,
+        'ai-charts': renderAiCharts,
+        'settings': renderSettings
+    };
+
+    const navLinks = document.querySelectorAll('.nav-link');
+    const pageBody = document.getElementById('pageBody');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageSubtitle = document.getElementById('pageSubtitle');
+
+    function setPage(page) {
+        navLinks.forEach(link => {
+            if (link.getAttribute('data-page') === page) {
+                link.classList.add('bg-sky-100', 'text-sky-700');
+            } else {
+                link.classList.remove('bg-sky-100', 'text-sky-700');
+            }
+        });
+
+        const renderFunc = pageRenderers[page] || renderDashboard;
+        renderFunc();
+        window.location.hash = page;
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            setPage(page);
+        });
+    });
+
+    // Initial page load
+    const initialPage = window.location.hash.substring(1) || 'dashboard';
+    setPage(initialPage);
+});
+
+async function renderDashboard() {
+    setPageHeader('لوحة التحكم الرئيسية', 'نظرة عامة على أداء المنصة');
+    clearPageBody();
+    
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = `
+        <div class="text-center py-12">
+            <i data-lucide="loader" class="w-12 h-12 animate-spin mx-auto text-sky-600"></i>
+            <p class="mt-4 text-slate-600">جاري تحميل بيانات لوحة التحكم...</p>
+        </div>
+    `;
+    lucide.createIcons();
+    
+    try {
+        const data = await fetchJson(API_ENDPOINTS.dashboardStats);
+        if (data.success) {
+            displayDashboard(data.data);
+        } else {
+            displayDashboard({}); // Show empty dashboard on API error
+        }
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        displayDashboard({}); // Show empty dashboard on fetch error
+    }
+}
+
+function displayDashboard(data) {
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = `
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-sky-100 rounded-lg">
+                        <i data-lucide="users" class="w-6 h-6 text-sky-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">إجمالي المتدربين</p>
+                        <p class="text-2xl font-bold text-slate-800">${data.total_students || 0}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-emerald-100 rounded-lg">
+                        <i data-lucide="book-open" class="w-6 h-6 text-emerald-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">الدورات النشطة</p>
+                        <p class="text-2xl font-bold text-slate-800">${data.active_courses || 0}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-amber-100 rounded-lg">
+                        <i data-lucide="dollar-sign" class="w-6 h-6 text-amber-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">إجمالي الإيرادات</p>
+                        <p class="text-2xl font-bold text-slate-800">${formatMoney(data.total_revenue || 0)}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-violet-100 rounded-lg">
+                        <i data-lucide="inbox" class="w-6 h-6 text-violet-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">الطلبات الجديدة</p>
+                        <p class="text-2xl font-bold text-slate-800">${data.new_requests || 0}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts and Recent Activity -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow p-6 border border-slate-100">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">نظرة عامة على التسجيل</h3>
+                <div class="h-72">
+                    <canvas id="enrollmentChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">آخر النشاطات</h3>
+                <div id="recentActivity" class="space-y-4">
+                    ${(data.recent_activity || []).map(activity => `
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-slate-100 rounded-full">
+                                <i data-lucide="${activity.icon || 'bell'}" class="w-4 h-4 text-slate-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-700">${escapeHtml(activity.description)}</p>
+                                <p class="text-xs text-slate-500">${formatDateTime(activity.timestamp)}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                    ${(data.recent_activity || []).length === 0 ? '<p class="text-sm text-slate-500">لا توجد نشاطات حديثة.</p>' : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    lucide.createIcons();
+    
+    // Create enrollment chart
+    const ctx = document.getElementById('enrollmentChart');
+    if (ctx && data.enrollment_overview) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.enrollment_overview.labels || [],
+                datasets: [{
+                    label: 'التسجيلات الجديدة',
+                    data: data.enrollment_overview.data || [],
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+}
+
+// ==============================================
+// Toast Notifications
+// ==============================================
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) return;
+
     const icons = {
-        'success': 'check-circle',
-        'warning': 'alert-triangle',
-        'error': 'x-circle',
-        'info': 'info',
-        'message': 'message-circle',
-        'user': 'user',
-        'default': 'bell'
+        info: 'info',
+        success: 'check-circle',
+        error: 'x-circle',
+        warning: 'alert-triangle'
     };
-    return icons[type] || icons.default;
-}
 
-async function markNotificationRead(id) {
-    try {
-        await fetchJson(`${API_ENDPOINTS.markNotificationRead}?id=${id}`, {
-            method: 'POST'
-        });
-        loadAdvancedNotifications();
-    } catch (error) {
-        console.error('Error marking notification as read:', error);
-    }
-}
+    const colors = {
+        info: 'bg-sky-600',
+        success: 'bg-emerald-600',
+        error: 'bg-red-600',
+        warning: 'bg-amber-600'
+    };
 
-async function markAllNotificationsRead() {
-    try {
-        await fetchJson(API_ENDPOINTS.markNotificationRead, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'mark_all' })
-        });
-        showToast('تم تحديد جميع الإشعارات كمقروءة', 'success');
-        loadAdvancedNotifications();
-    } catch (error) {
-        console.error('Error marking all notifications:', error);
-    }
-}
-
-async function approveRequest(id) {
-    if (!confirm('هل تريد الموافقة على هذا الطلب؟')) return;
+    const toast = document.createElement('div');
+    toast.className = `flex items-center gap-3 p-4 rounded-lg shadow-lg text-white ${colors[type]} animate-toast-in`;
+    toast.innerHTML = `
+        <i data-lucide="${icons[type]}" class="w-6 h-6"></i>
+        <span>${message}</span>
+    `;
     
-    try {
-        await fetchJson(`${API_ENDPOINTS.manageRequests}`, {
-            method: 'POST',
-            body: JSON.stringify({ id, action: 'approve' })
+    toastContainer.appendChild(toast);
+    lucide.createIcons();
+
+    setTimeout(() => {
+        toast.classList.remove('animate-toast-in');
+        toast.classList.add('animate-toast-out');
+        toast.addEventListener('animationend', () => {
+            toast.remove();
         });
-        showToast('تمت الموافقة على الطلب', 'success');
-        renderRequests();
-    } catch (error) {
-        showToast('حدث خطأ أثناء الموافقة', 'error');
-    }
+    }, 5000);
 }
 
-async function rejectRequest(id) {
-    if (!confirm('هل تريد رفض هذا الطلب؟')) return;
+// ==============================================
+// Modal
+// ==============================================
+function openModal(title, content) {
+    const modal = document.getElementById('modal');
+    if (!modal) return;
     
-    try {
-        await fetchJson(`${API_ENDPOINTS.manageRequests}`, {
-            method: 'POST',
-            body: JSON.stringify({ id, action: 'reject' })
-        });
-        showToast('تم رفض الطلب', 'error');
-        renderRequests();
-    } catch (error) {
-        showToast('حدث خطأ أثناء الرفض', 'error');
-    }
-}
-
-async function editTrainer(id) {
-    try {
-        const response = await fetchJson(`${API_ENDPOINTS.manageUsers}?id=${id}`);
-        const trainer = response.user || response;
-        
-        const modalContent = `
-            <form id="editTrainerForm" class="space-y-4">
-                <input type="hidden" name="id" value="${id}">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">الاسم الكامل</label>
-                    <input type="text" name="name" value="${escapeHtml(trainer.name)}" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">البريد الإلكتروني</label>
-                    <input type="email" name="email" value="${escapeHtml(trainer.email)}" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">التخصص</label>
-                    <input type="text" name="specialty" value="${escapeHtml(trainer.specialty || '')}" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                        حفظ التعديلات
-                    </button>
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                        إلغاء
-                    </button>
-                </div>
-            </form>
-        `;
-        
-        openModal('تعديل بيانات المدرب', modalContent);
-        
-        document.getElementById('editTrainerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-            
-            try {
-                await fetchJson(`${API_ENDPOINTS.manageUsers}`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'update',
-                        user_id: data.id,
-                        full_name: data.name,
-                        email: data.email,
-                        phone: data.phone || ''
-                    })
-                });
-                showToast('تم تحديث بيانات المدرب بنجاح', 'success');
-                closeModal();
-                renderTrainers();
-            } catch (error) {
-                showToast('حدث خطأ أثناء التحديث', 'error');
-            }
-        });
-    } catch (error) {
-        showToast('حدث خطأ أثناء تحميل البيانات', 'error');
-    }
-}
-
-async function deleteTrainer(id) {
-    if (!confirm('هل تريد حذف هذا المدرب؟')) return;
+    document.getElementById('modalTitle').textContent = title;
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = content;
     
-    try {
-        await fetchJson(`${API_ENDPOINTS.manageUsers}`, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'delete',
-                user_id: id
-            })
-        });
-        showToast('تم حذف المدرب', 'success');
-        renderTrainers();
-    } catch (error) {
-        showToast('حدث خطأ أثناء الحذف', 'error');
-    }
-}
-
-async function editAnnouncement(id) {
-    try {
-        const response = await fetchJson(`${API_ENDPOINTS.manageAnnouncements}?id=${id}`);
-        const announcement = response.announcement || response;
-        
-        const modalContent = `
-            <form id="editAnnouncementForm" class="space-y-4">
-                <input type="hidden" name="id" value="${id}">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">العنوان</label>
-                    <input type="text" name="title" value="${escapeHtml(announcement.title)}" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">المحتوى</label>
-                    <textarea name="content" required rows="4" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500">${escapeHtml(announcement.content)}</textarea>
-                </div>
-                <div>
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" name="is_active" value="1" ${announcement.is_active ? 'checked' : ''} class="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500">
-                        <span class="text-sm text-slate-700">نشط</span>
-                    </label>
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700">
-                        حفظ التعديلات
-                    </button>
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                        إلغاء
-                    </button>
-                </div>
-            </form>
-        `;
-        
-        openModal('تعديل الإعلان', modalContent);
-        
-        document.getElementById('editAnnouncementForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-            data.is_active = data.is_active ? 1 : 0;
-            
-            try {
-                await fetchJson(`${API_ENDPOINTS.manageAnnouncements}`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'update',
-                        id: data.id,
-                        title: data.title,
-                        content: data.content,
-                        is_active: data.is_active
-                    })
-                });
-                showToast('تم تحديث الإعلان بنجاح', 'success');
-                closeModal();
-                renderAnnouncements();
-            } catch (error) {
-                showToast('حدث خطأ أثناء التحديث', 'error');
-            }
-        });
-    } catch (error) {
-        showToast('حدث خطأ أثناء تحميل البيانات', 'error');
-    }
-}
-
-async function deleteAnnouncement(id) {
-    if (!confirm('هل تريد حذف هذا الإعلان؟')) return;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.querySelector('[data-modal-content]').classList.remove('opacity-0', 'scale-95');
+    }, 10);
     
-    try {
-        await fetchJson(`${API_ENDPOINTS.manageAnnouncements}`, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'delete',
-                id: id
-            })
-        });
-        showToast('تم حذف الإعلان', 'success');
-        renderAnnouncements();
-    } catch (error) {
-        showToast('حدث خطأ أثناء الحذف', 'error');
-    }
+    lucide.createIcons();
 }
 
-// Edit/Delete functions for Trainees
-async function editTrainee(id) {
-    try {
-        const response = await fetchJson(`${API_ENDPOINTS.manageUsers}?id=${id}`);
-        const trainee = response.user || response;
-        
-        const modalContent = `
-            <form id="editTraineeForm" class="space-y-4">
-                <input type="hidden" name="id" value="${id}">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">الاسم الكامل</label>
-                    <input type="text" name="name" value="${escapeHtml(trainee.name)}" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">البريد الإلكتروني</label>
-                    <input type="email" name="email" value="${escapeHtml(trainee.email)}" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">رقم الهاتف</label>
-                    <input type="tel" name="phone" value="${escapeHtml(trainee.phone || '')}" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">
-                        حفظ التعديلات
-                    </button>
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                        إلغاء
-                    </button>
-                </div>
-            </form>
-        `;
-        
-        openModal('تعديل بيانات المتدرب', modalContent);
-        
-        document.getElementById('editTraineeForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-            
-            try {
-                await fetchJson(`${API_ENDPOINTS.manageUsers}`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'update',
-                        user_id: data.id,
-                        full_name: data.name,
-                        email: data.email,
-                        phone: data.phone || ''
-                    })
-                });
-                showToast('تم تحديث بيانات المتدرب بنجاح', 'success');
-                closeModal();
-                renderTrainees();
-            } catch (error) {
-                showToast('حدث خطأ أثناء التحديث', 'error');
-            }
-        });
-    } catch (error) {
-        showToast('حدث خطأ أثناء تحميل البيانات', 'error');
-    }
-}
-
-async function deleteTrainee(id) {
-    if (!confirm('هل أنت متأكد من حذف هذا المتدرب؟')) return;
+function closeModal() {
+    const modal = document.getElementById('modal');
+    if (!modal) return;
     
-    try {
-        await fetchJson(`${API_ENDPOINTS.manageUsers}`, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'delete',
-                user_id: id
-            })
-        });
-        showToast('تم حذف المتدرب بنجاح', 'success');
-        renderTrainees();
-    } catch (error) {
-        showToast('حدث خطأ أثناء الحذف', 'error');
-    }
+    modal.querySelector('[data-modal-content]').classList.add('opacity-0', 'scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.getElementById('modalTitle').textContent = '';
+        document.getElementById('modalBody').innerHTML = '';
+    }, 200);
 }
 
-// Edit/Delete functions for Courses
-async function editCourse(id) {
-    try {
-        const response = await fetchJson(`${API_ENDPOINTS.manageCourses}?id=${id}`);
-        const course = response.course || response;
-        
-        const modalContent = `
-            <form id="editCourseForm" class="space-y-4">
-                <input type="hidden" name="id" value="${id}">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">اسم الدورة</label>
-                    <input type="text" name="name" value="${escapeHtml(course.name)}" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">الوصف</label>
-                    <textarea name="description" rows="3" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">${escapeHtml(course.description || '')}</textarea>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">المدة (ساعة)</label>
-                        <input type="number" name="duration" value="${course.duration || ''}" min="1" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">الحالة</label>
-                        <select name="status" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                            <option value="active" ${course.status === 'active' ? 'selected' : ''}>نشط</option>
-                            <option value="inactive" ${course.status === 'inactive' ? 'selected' : ''}>غير نشط</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                        حفظ التعديلات
-                    </button>
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                        إلغاء
-                    </button>
-                </div>
-            </form>
-        `;
-        
-        openModal('تعديل الدورة', modalContent);
-        
-        document.getElementById('editCourseForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-            
-            try {
-                await fetchJson(`${API_ENDPOINTS.manageCourses}`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'update',
-                        course_id: data.id,
-                        title: data.name,
-                        short_desc: data.short_desc || '',
-                        full_desc: data.description || '',
-                        category: data.category || '',
-                        trainer_id: data.trainer_id || null,
-                        duration: data.duration,
-                        start_date: data.start_date || null,
-                        end_date: data.end_date || null,
-                        max_students: data.max_students || 30,
-                        fees: data.price,
-                        image_url: data.image_url || '',
-                        status: data.status || 'active'
-                    })
-                });
-                showToast('تم تحديث الدورة بنجاح', 'success');
-                closeModal();
-                renderCourses();
-            } catch (error) {
-                showToast('حدث خطأ أثناء التحديث', 'error');
-            }
-        });
-    } catch (error) {
-        showToast('حدث خطأ أثناء تحميل البيانات', 'error');
+// Close modal on escape key press
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModal();
     }
-}
+});
 
-async function viewCourseDetails(id) {
-    try {
-        const response = await fetchJson(`${API_ENDPOINTS.manageCourses}?id=${id}`);
-        const course = response.course || response;
-        
-        const modalContent = `
-            <div class="space-y-4">
-                <div class="bg-emerald-50 rounded-lg p-4">
-                    <h3 class="text-lg font-bold text-emerald-900 mb-2">${escapeHtml(course.name)}</h3>
-                    <p class="text-slate-600">${escapeHtml(course.description || 'لا يوجد وصف')}</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-slate-50 rounded-lg p-3">
-                        <div class="text-sm text-slate-600">المدة</div>
-                        <div class="text-lg font-bold text-slate-900">${course.duration || 0} ساعة</div>
-                    </div>
-                    <div class="bg-slate-50 rounded-lg p-3">
-                        <div class="text-sm text-slate-600">المسجلين</div>
-                        <div class="text-lg font-bold text-slate-900">${course.enrolled_count || 0} متدرب</div>
-                    </div>
-                </div>
-                <div class="bg-slate-50 rounded-lg p-3">
-                    <div class="text-sm text-slate-600 mb-2">الحالة</div>
-                    <span class="px-3 py-1 rounded-full text-sm ${course.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'}">
-                        ${course.status === 'active' ? 'نشط' : 'غير نشط'}
-                    </span>
-                </div>
-                <button onclick="closeModal()" class="w-full px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                    إغلاق
-                </button>
-            </div>
-        `;
-        
-        openModal('تفاصيل الدورة', modalContent);
-    } catch (error) {
-        showToast('حدث خطأ أثناء تحميل التفاصيل', 'error');
+// Close modal on overlay click
+document.getElementById('modal')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal')) {
+        closeModal();
     }
-}
-
-async function viewPaymentDetails(id) {
-    try {
-        const response = await fetchJson(`${API_ENDPOINTS.manageFinance}?id=${id}`);
-        const payment = response.payment || response;
-        
-        const modalContent = `
-            <div class="space-y-4">
-                <div class="bg-amber-50 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-lg font-bold text-amber-900">تفاصيل الدفعة</h3>
-                        <span class="px-3 py-1 rounded-full text-sm ${payment.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                            ${payment.status === 'completed' ? 'مكتمل' : 'معلق'}
-                        </span>
-                    </div>
-                </div>
-                <div class="space-y-3">
-                    <div class="flex justify-between py-2 border-b border-slate-200">
-                        <span class="text-slate-600">اسم المتدرب</span>
-                        <span class="font-semibold">${escapeHtml(payment.student_name || 'غير محدد')}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-slate-200">
-                        <span class="text-slate-600">الدورة</span>
-                        <span class="font-semibold">${escapeHtml(payment.course_name || 'غير محدد')}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-slate-200">
-                        <span class="text-slate-600">المبلغ</span>
-                        <span class="font-bold text-amber-600">${formatMoney(payment.amount)}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-slate-200">
-                        <span class="text-slate-600">التاريخ</span>
-                        <span class="font-semibold">${formatDateTime(payment.created_at)}</span>
-                    </div>
-                </div>
-                <button onclick="closeModal()" class="w-full px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
-                    إغلاق
-                </button>
-            </div>
-        `;
-        
-        openModal('تفاصيل الدفعة', modalContent);
-    } catch (error) {
-        showToast('حدث خطأ أثناء تحميل التفاصيل', 'error');
-    }
-}
+});

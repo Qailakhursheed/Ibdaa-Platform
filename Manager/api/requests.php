@@ -60,6 +60,9 @@ try {
         case 'monthly_stats':
             getMonthlyStats($conn);
             break;
+        case 'confirm_payment':
+            confirmPayment($conn, $userId);
+            break;
         default:
             throw new Exception('إجراء غير صحيح');
     }
@@ -497,6 +500,53 @@ function getMonthlyStats($conn) {
         'success' => true,
         'data' => $data
     ], JSON_UNESCAPED_UNICODE);
+}
+
+/**
+ * Confirm payment and activate account
+ */
+function confirmPayment($conn, $adminId) {
+    $studentId = intval($_POST['student_id'] ?? 0);
+    if ($studentId <= 0) throw new Exception('رقم الطالب مطلوب');
+
+    $conn->begin_transaction();
+    try {
+        // Update user status
+        $stmt = $conn->prepare("UPDATE users SET account_status = 'active', payment_complete = 1, status = 'active' WHERE id = ?");
+        $stmt->bind_param('i', $studentId);
+        $stmt->execute();
+
+        // Update enrollment status
+        $stmt = $conn->prepare("UPDATE enrollments SET payment_status = 'completed', status = 'active' WHERE user_id = ?");
+        $stmt->bind_param('i', $studentId);
+        $stmt->execute();
+
+        // Notify student
+        $msg = "تم تأكيد الدفع وتفعيل حسابك بنجاح. يمكنك الآن الدخول للمنصة.";
+        $stmt = $conn->prepare("INSERT INTO notifications (user_id, message, type, created_at) VALUES (?, ?, 'success', NOW())");
+        $stmt->bind_param('is', $studentId, $msg);
+        $stmt->execute();
+
+        // Send Email (via log)
+        $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE id = ?");
+        $stmt->bind_param('i', $studentId);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        
+        if ($user) {
+             $email_subject = 'تم تفعيل حسابك - منصة إبداع';
+             $email_message = "مرحباً {$user['full_name']}،\n\nتم استلام الرسوم وتفعيل حسابك بنجاح.\nيمكنك الآن الدخول إلى المنصة والاستفادة من جميع الخدمات.\n\nبالتوفيق!";
+             $log_stmt = $conn->prepare("INSERT INTO notification_log (recipient_email, subject, message, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
+             $log_stmt->bind_param('sss', $user['email'], $email_subject, $email_message);
+             $log_stmt->execute();
+        }
+
+        $conn->commit();
+        echo json_encode(['success' => true, 'message' => 'تم تأكيد الدفع وتفعيل الحساب'], JSON_UNESCAPED_UNICODE);
+    } catch (Exception $e) {
+        $conn->rollback();
+        throw $e;
+    }
 }
 
 // ==================== HELPER FUNCTIONS ====================

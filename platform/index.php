@@ -1,12 +1,9 @@
-<?php
-// جلب الإعلانات من قاعدة البيانات
-require_once 'db.php';
-
 $announcements = [];
 try {
     $stmt = $conn->prepare("
-        SELECT id, title, content, created_at 
-        FROM announcements 
+        SELECT id, title, content, media_url, created_at 
+        FROM notifications 
+        WHERE type = 'info'
         ORDER BY created_at DESC 
         LIMIT 3
     ");
@@ -46,6 +43,7 @@ try {
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .line-clamp-4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   </style>
+  <link rel="stylesheet" href="css/ask-abdullah.css">
 </head>
 
 <body class="text-gray-900">
@@ -177,13 +175,24 @@ try {
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
         <?php foreach ($announcements as $announcement): ?>
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover border border-indigo-100">
-          <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4">
-            <h3 class="text-xl font-bold text-white line-clamp-2"><?= htmlspecialchars($announcement['title']) ?></h3>
-          </div>
-          <div class="p-6">
-            <p class="text-gray-700 leading-relaxed mb-4 line-clamp-4"><?= nl2br(htmlspecialchars($announcement['content'])) ?></p>
-            <div class="flex items-center justify-between text-sm text-gray-500 pt-4 border-t">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover border border-indigo-100 flex flex-col">
+          <?php if (!empty($announcement['media_url'])): ?>
+            <div class="w-full h-48 bg-slate-200">
+              <?php
+                $media_ext = strtolower(pathinfo($announcement['media_url'], PATHINFO_EXTENSION));
+                $video_exts = ['mp4', 'webm', 'ogg'];
+              ?>
+              <?php if (in_array($media_ext, $video_exts)): ?>
+                <video src="../<?= htmlspecialchars($announcement['media_url']) ?>" class="w-full h-full object-cover" controls></video>
+              <?php else: ?>
+                <img src="../<?= htmlspecialchars($announcement['title']) ?>" alt="<?= htmlspecialchars($announcement['title']) ?>" class="w-full h-full object-cover">
+              <?php endif; ?>
+            </div>
+          <?php endif; ?>
+          <div class="p-6 flex-grow flex flex-col">
+            <h3 class="text-xl font-bold text-gray-800 mb-2 line-clamp-2"><?= htmlspecialchars($announcement['title']) ?></h3>
+            <p class="text-gray-700 leading-relaxed mb-4 line-clamp-4 flex-grow"><?= nl2br(htmlspecialchars($announcement['content'])) ?></p>
+            <div class="flex items-center justify-between text-sm text-gray-500 pt-4 border-t mt-auto">
               <div class="flex items-center">
                 <i data-lucide="calendar" class="w-4 h-4 ml-1"></i>
                 <span><?= date('Y/m/d', strtotime($announcement['created_at'])) ?></span>
@@ -250,6 +259,37 @@ try {
     <div class="text-center text-sm border-t border-gray-700 mt-10 pt-5">&copy; 2025 منصة إبداع للتدريب والتأهيل — جميع الحقوق محفوظة.</div>
   </footer>
 
+  <!-- "Ask Abdullah" AI Chat Widget -->
+  <div id="ai-chat-button" role="button" aria-expanded="false" aria-label="افتح المحادثة مع عبدالله">
+      <div class="icon-open">
+          <i data-lucide="message-circle" class="w-8 h-8 text-white"></i>
+      </div>
+      <div class="icon-close">
+          <i data-lucide="x" class="w-8 h-8 text-white"></i>
+      </div>
+  </div>
+
+  <div id="ai-chat-widget" class="hidden" role="dialog" aria-modal="true" aria-labelledby="chat-header-title">
+      <div class="chat-header">
+          <h3 id="chat-header-title">اسأل عبدالله</h3>
+          <button id="chat-close-btn" aria-label="إغلاق المحادثة">
+              <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+      </div>
+      <div id="chat-body" class="chat-body">
+          <!-- Messages will be dynamically inserted here -->
+      </div>
+      <div class="chat-footer">
+          <form id="chat-input-form">
+              <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." autocomplete="off" required>
+              <button type="submit" id="chat-send-btn" disabled aria-label="إرسال الرسالة">
+                  <i data-lucide="send" class="w-5 h-5"></i>
+              </button>
+          </form>
+      </div>
+  </div>
+  <!-- End of AI Chat Widget -->
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       lucide.createIcons();
@@ -269,9 +309,10 @@ try {
           buttons.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
         });
-      });
+      }
     });
   </script>
+  <script src="js/ask-abdullah.js"></script>
 </body>
 </html>
 

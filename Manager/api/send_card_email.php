@@ -61,11 +61,16 @@ try {
         exit;
     }
 
+    // Determine Base URL dynamically
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+    $host = $_SERVER['HTTP_HOST'];
+    $baseUrl = "$protocol://$host/Ibdaa-Taiz";
+
     // Generate Card URL
-    $cardUrl = 'http://localhost/Ibdaa-Taiz/Manager/api/generate_id_card_v2.php?id=' . $student_id;
+    $cardUrl = "$baseUrl/Manager/api/generate_id_card_v2.php?id=" . $student_id;
     
     // Generate QR Code as base64
-    $verifyUrl = 'http://localhost/Ibdaa-Taiz/platform/verify_student.php?id=' . $student_id;
+    $verifyUrl = "$baseUrl/platform/verify_student.php?id=" . $student_id;
     $qrOptions = new QROptions([
         'version' => 5,
         'outputType' => QRCode::OUTPUT_IMAGE_PNG,
