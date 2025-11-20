@@ -23,6 +23,7 @@ error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../database/db.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../../includes/email_sender.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -574,50 +575,22 @@ class AdvancedCertificateManager {
         
         $recipient = $email ?? $cert['student_email'];
         
-        try {
-            $mail = new PHPMailer(true);
-            
-            // SMTP Configuration
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'your-email@gmail.com'; // Configure
-            $mail->Password = 'your-password'; // Configure
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-            
-            // Recipients
-            $mail->setFrom('noreply@ibdaa-platform.com', 'مركز إبداع للتدريب');
-            $mail->addAddress($recipient, $cert['full_name']);
-            
-            // Attachment
-            $file_full_path = __DIR__ . '/../../' . $cert['file_path'];
-            if (file_exists($file_full_path)) {
-                $mail->addAttachment($file_full_path, 'certificate.pdf');
-            }
-            
-            // Content
-            $mail->isHTML(true);
-            $mail->CharSet = 'UTF-8';
-            $mail->Subject = 'شهادة إتمام دورة - ' . $cert['course_title'];
-            $mail->Body = $this->getEmailTemplate($cert);
-            
-            $mail->send();
-            
+        $file_full_path = __DIR__ . '/../../' . $cert['file_path'];
+        
+        $emailSender = new EmailSender($this->conn);
+        $result = $emailSender->sendCertificate(
+            $recipient, 
+            $cert['full_name'], 
+            $cert['course_title'], 
+            $file_full_path
+        );
+
+        if ($result['success']) {
             // Update database
             $this->conn->query("UPDATE certificates SET sent_via_email = 1, email_sent_at = NOW() WHERE certificate_id = $cert_id");
-            
-            return [
-                'success' => true,
-                'message' => 'تم إرسال الشهادة بنجاح إلى ' . $recipient
-            ];
-            
-        } catch (PHPMailerException $e) {
-            return [
-                'success' => false,
-                'message' => 'فشل إرسال البريد: ' . $e->getMessage()
-            ];
         }
+
+        return $result;
     }
     
     /**

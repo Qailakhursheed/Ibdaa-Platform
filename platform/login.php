@@ -138,8 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         switch ($userRole) {
                             case 'manager':
                             case 'technical':
-                            case 'trainer':
                                 header("Location: ../Manager/dashboard_router.php");
+                                break;
+                            case 'trainer':
+                                header("Location: trainer-dashboard.php");
                                 break;
                             default:
                                 header("Location: student-dashboard.php");

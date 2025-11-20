@@ -1,0 +1,24 @@
+:root {
+    --trainer-primary: #059669; /* Emerald-600 */
+    --trainer-light: #d1fae5; /* Emerald-100 */
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: #d1d5db; /* Gray-300 */
+    transition: background-color 0.2s, color 0.2s;
+    gap: 0.75rem;
+}
+
+.nav-link:hover {
+    background-color: #374151; /* Gray-700 */
+    color: white;
+}
+
+.nav-link.active {
+    background-color: var(--trainer-primary);
+    color: white;
+    font-weight: bold;
+}

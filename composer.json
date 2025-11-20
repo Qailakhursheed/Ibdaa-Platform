@@ -3,9 +3,19 @@
         "phpoffice/phpspreadsheet": "1.29",
         "setasign/fpdf": "^1.8",
         "chillerlan/php-qrcode": "^5.0",
-        "phpmailer/phpmailer": "^7.0",
+        "phpmailer/phpmailer": "6.0",
         "php-ai/php-ml": "0.10",
         "smalot/pdfparser": "2.5",
-        "predis/predis": "2.2"
+        "predis/predis": "2.2",
+        "tecnickcom/tcpdf": "*",
+        "intervention/image": "*",
+        "gemini-api-php/client": "^0.2.0",
+        "nyholm/psr7": "^1.8",
+        "google/apiclient": "^2.18"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
     }
 }

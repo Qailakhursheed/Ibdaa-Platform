@@ -1,313 +1,0 @@
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اختبار نظام تسجيل الدخول - منصة إبداع</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-        body { font-family: 'Cairo', sans-serif; }
-        .test-card { 
-            transition: all 0.3s ease;
-            border: 2px solid #e5e7eb;
-        }
-        .test-card:hover { 
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .status-badge {
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-    </style>
-</head>
-<body class="bg-gradient-to-br from-indigo-50 to-purple-50 min-h-screen p-6">
-    
-    <div class="max-w-6xl mx-auto">
-        <!-- العنوان -->
-        <div class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-indigo-900 mb-3">
-                🔐 اختبار نظام تسجيل الدخول
-            </h1>
-            <p class="text-gray-600">منصة إبداع للتدريب والتأهيل</p>
-        </div>
-
-        <!-- الحالة العامة -->
-        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">📊 الحالة العامة</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="text-center p-4 bg-green-50 rounded-xl">
-                    <div class="text-4xl mb-2">✅</div>
-                    <div class="font-bold text-green-700">تسجيل الدخول</div>
-                    <div class="text-sm text-gray-600">يعمل 100%</div>
-                </div>
-                <div class="text-center p-4 bg-blue-50 rounded-xl">
-                    <div class="text-4xl mb-2">🔒</div>
-                    <div class="font-bold text-blue-700">الأمان</div>
-                    <div class="text-sm text-gray-600">جيد جداً</div>
-                </div>
-                <div class="text-center p-4 bg-purple-50 rounded-xl">
-                    <div class="text-4xl mb-2">👥</div>
-                    <div class="font-bold text-purple-700">الجلسات</div>
-                    <div class="text-sm text-gray-600">آمنة</div>
-                </div>
-                <div class="text-center p-4 bg-orange-50 rounded-xl">
-                    <div class="text-4xl mb-2">⚠️</div>
-                    <div class="font-bold text-orange-700">تحسينات</div>
-                    <div class="text-sm text-gray-600">3 نقاط</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- اختبارات المنصة الخارجية -->
-        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">🌐 المنصة الخارجية (Platform)</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- تسجيل الدخول -->
-                <div class="test-card bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
-                    <h3 class="text-xl font-bold text-blue-900 mb-3">
-                        🔑 تسجيل الدخول
-                    </h3>
-                    <p class="text-gray-700 mb-4">اختبار نظام تسجيل دخول الطلاب</p>
-                    <a href="/Ibdaa-Taiz/platform/login.php" 
-                       target="_blank"
-                       class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        افتح صفحة تسجيل الدخول
-                    </a>
-                    <div class="mt-4 text-sm text-gray-600 bg-white p-3 rounded">
-                        <strong>بيانات تجريبية:</strong><br>
-                        Email: student@test.com<br>
-                        Password: 123456
-                    </div>
-                </div>
-
-                <!-- التسجيل الجديد -->
-                <div class="test-card bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
-                    <h3 class="text-xl font-bold text-green-900 mb-3">
-                        📝 التسجيل الجديد
-                    </h3>
-                    <p class="text-gray-700 mb-4">إنشاء حساب طالب جديد</p>
-                    <a href="/Ibdaa-Taiz/platform/signup.php" 
-                       target="_blank"
-                       class="block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        افتح صفحة التسجيل
-                    </a>
-                    <div class="mt-4 text-sm text-gray-600 bg-white p-3 rounded">
-                        <strong>متطلبات:</strong><br>
-                        • الاسم الكامل<br>
-                        • البريد الإلكتروني<br>
-                        • كلمة المرور (6+ أحرف)<br>
-                        • صورة شخصية
-                    </div>
-                </div>
-
-                <!-- لوحة التحكم -->
-                <div class="test-card bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
-                    <h3 class="text-xl font-bold text-purple-900 mb-3">
-                        🏠 لوحة الطالب
-                    </h3>
-                    <p class="text-gray-700 mb-4">لوحة تحكم الطالب</p>
-                    <a href="/Ibdaa-Taiz/platform/student-dashboard.php" 
-                       target="_blank"
-                       class="block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        افتح لوحة التحكم
-                    </a>
-                    <div class="mt-4 text-sm text-gray-600 bg-white p-3 rounded">
-                        <strong>يتطلب:</strong><br>
-                        تسجيل دخول مسبق
-                    </div>
-                </div>
-
-                <!-- الصفحات العامة -->
-                <div class="test-card bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
-                    <h3 class="text-xl font-bold text-orange-900 mb-3">
-                        🌍 الصفحات العامة
-                    </h3>
-                    <p class="text-gray-700 mb-4">الصفحات المتاحة للجميع</p>
-                    <div class="space-y-2">
-                        <a href="/Ibdaa-Taiz/platform/index.php" target="_blank"
-                           class="block text-center bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded transition text-sm">
-                            الصفحة الرئيسية
-                        </a>
-                        <a href="/Ibdaa-Taiz/platform/courses.php" target="_blank"
-                           class="block text-center bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded transition text-sm">
-                            الدورات التدريبية
-                        </a>
-                        <a href="/Ibdaa-Taiz/platform/about.php" target="_blank"
-                           class="block text-center bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded transition text-sm">
-                            عن المنصة
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- اختبارات لوحة التحكم -->
-        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">🎛️ لوحة التحكم (Manager)</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- تسجيل دخول الإدارة -->
-                <div class="test-card bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl">
-                    <h3 class="text-xl font-bold text-red-900 mb-3">
-                        🔐 تسجيل دخول الإدارة
-                    </h3>
-                    <p class="text-gray-700 mb-4">للمديرين والمدربين والتقنيين</p>
-                    <a href="/Ibdaa-Taiz/Manager/login.php" 
-                       target="_blank"
-                       class="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        افتح لوحة التحكم
-                    </a>
-                    <div class="mt-4 text-sm text-gray-600 bg-white p-3 rounded">
-                        <strong>الصلاحيات:</strong><br>
-                        • manager → لوحة المدير<br>
-                        • trainer → لوحة المدرب<br>
-                        • technical → لوحة التقني<br>
-                        • student → لوحة الطالب
-                    </div>
-                </div>
-
-                <!-- إنشاء حساب مدير -->
-                <div class="test-card bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl">
-                    <h3 class="text-xl font-bold text-yellow-900 mb-3">
-                        👨‍💼 إنشاء حساب مدير
-                    </h3>
-                    <p class="text-gray-700 mb-4">إنشاء حساب جديد للمديرين</p>
-                    <a href="/Ibdaa-Taiz/Manager/create_admin.php" 
-                       target="_blank"
-                       class="block w-full text-center bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                        إنشاء حساب
-                    </a>
-                    <div class="mt-4 text-sm text-gray-600 bg-white p-3 rounded">
-                        <strong>ملاحظة:</strong><br>
-                        يمكن إنشاء حسابات بصلاحيات:<br>
-                        manager, trainer, technical
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- نقاط الأمان -->
-        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">🔒 نقاط الأمان</h2>
-            
-            <div class="space-y-4">
-                <div class="flex items-start gap-4 p-4 bg-green-50 rounded-lg">
-                    <div class="text-3xl">✅</div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-green-900 mb-2">كلمات المرور</h4>
-                        <p class="text-gray-700 text-sm">استخدام bcrypt hashing - ممتاز</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-4 bg-green-50 rounded-lg">
-                    <div class="text-3xl">✅</div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-green-900 mb-2">SQL Injection</h4>
-                        <p class="text-gray-700 text-sm">Prepared Statements في جميع الملفات - آمن</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-4 bg-green-50 rounded-lg">
-                    <div class="text-3xl">✅</div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-green-900 mb-2">إدارة الجلسات</h4>
-                        <p class="text-gray-700 text-sm">Session protection موجود - جيد</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-4 bg-orange-50 rounded-lg">
-                    <div class="text-3xl">⚠️</div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-orange-900 mb-2">CSRF Protection</h4>
-                        <p class="text-gray-700 text-sm">غير موجود - يحتاج إضافة (أولوية عالية)</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-4 bg-orange-50 rounded-lg">
-                    <div class="text-3xl">⚠️</div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-orange-900 mb-2">Rate Limiting</h4>
-                        <p class="text-gray-700 text-sm">غير موجود - يحتاج إضافة (أولوية عالية)</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-4 bg-yellow-50 rounded-lg">
-                    <div class="text-3xl">⚡</div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-yellow-900 mb-2">Session Timeout</h4>
-                        <p class="text-gray-700 text-sm">يحتاج تحسين - أولوية متوسطة</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- التقييم النهائي -->
-        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white text-center">
-            <h2 class="text-3xl font-bold mb-4">🏆 التقييم النهائي</h2>
-            <div class="text-6xl font-bold mb-4">8.8/10</div>
-            <div class="text-xl mb-6">⭐⭐⭐⭐⭐</div>
-            <p class="text-lg opacity-90 mb-4">
-                نظام تسجيل الدخول يعمل بشكل ممتاز<br>
-                مع حاجة لبعض التحسينات الأمنية
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                <div class="bg-white/20 backdrop-blur rounded-lg p-4">
-                    <div class="text-3xl mb-2">✅</div>
-                    <div class="font-bold">يعمل</div>
-                    <div class="text-sm opacity-75">نظام تسجيل الدخول</div>
-                </div>
-                <div class="bg-white/20 backdrop-blur rounded-lg p-4">
-                    <div class="text-3xl mb-2">🔒</div>
-                    <div class="font-bold">آمن</div>
-                    <div class="text-sm opacity-75">بشكل عام</div>
-                </div>
-                <div class="bg-white/20 backdrop-blur rounded-lg p-4">
-                    <div class="text-3xl mb-2">⚡</div>
-                    <div class="font-bold">سريع</div>
-                    <div class="text-sm opacity-75">الأداء جيد</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- التقارير -->
-        <div class="mt-8 bg-white rounded-2xl shadow-xl p-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">📄 التقارير المفصلة</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <a href="PLATFORM_LOGIN_AUDIT.md" target="_blank"
-                   class="block p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
-                    <div class="flex items-center gap-3">
-                        <div class="text-3xl">📋</div>
-                        <div>
-                            <div class="font-bold text-blue-900">تقرير تسجيل الدخول</div>
-                            <div class="text-sm text-gray-600">تحليل شامل للنظام</div>
-                        </div>
-                    </div>
-                </a>
-                <a href="MANAGER_API_COMPLETE_REPORT.md" target="_blank"
-                   class="block p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
-                    <div class="flex items-center gap-3">
-                        <div class="text-3xl">📊</div>
-                        <div>
-                            <div class="font-bold text-purple-900">تقرير APIs</div>
-                            <div class="text-sm text-gray-600">فحص 56 ملف API</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        <!-- التذييل -->
-        <div class="mt-8 text-center text-gray-600 text-sm">
-            <p>تم إنشاء هذا الاختبار بواسطة AI System Audit</p>
-            <p class="mt-1">التاريخ: 2025-11-12</p>
-        </div>
-    </div>
-
-</body>
-</html>

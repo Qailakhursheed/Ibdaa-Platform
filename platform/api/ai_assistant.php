@@ -1,10 +1,9 @@
 <?php
-// Mock API for the "Ask Abdullah" AI Assistant
+// Real API for the "Ask Abdullah" AI Assistant
 
 header('Content-Type: application/json');
 
-// Simulate a network delay
-sleep(1);
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 // Get the user's prompt from the request body
 $request_body = file_get_contents('php://input');
@@ -20,20 +19,62 @@ if (empty($prompt)) {
     exit;
 }
 
-// Basic, static responses based on keywords
-$reply = 'أهلاً بك! أنا عبدالله، مساعدك الذكي في منصة إبداع. حالياً ما زلت في مرحلة التطوير، ولكنني سأكون جاهزاً لمساعدتك قريباً في كل ما يخص الدورات والتسجيل. شكراً لتفهمك!';
+// Predefined answers for platform-specific questions
+$platform_questions = [
+    'منصة إبداع' => 'منصة إبداع هي منصة للتدريب والتأهيل في اليمن، تعز.',
+    'دورات' => 'نقدم مجموعة متنوعة من الدورات في مجالات البرمجة، التصميم، واللغات.',
+    'التسجيل' => 'يمكنك التسجيل في الدورات من خلال صفحة الدورة نفسها.',
+    'الأسعار' => 'تختلف الأسعار باختلاف الدورة، يمكنك الاطلاع على سعر كل دورة في صفحتها.',
+];
 
-if (strpos($prompt, 'الدورات') !== false || strpos($prompt, 'دورات') !== false) {
-    $reply = 'يمكنك الاطلاع على جميع دوراتنا المتاحة من خلال صفحة الدورات. نقدم مجموعة واسعة من البرامج في مجالات مثل تطوير الويب، التصميم، والبرمجة.';
-} elseif (strpos($prompt, 'التسجيل') !== false) {
-    $reply = 'للتسجيل في إحدى دوراتنا، يمكنك زيارة صفحة الدورة التي تهمك والضغط على زر "التسجيل الآن". إذا واجهت أي صعوبة، فريق الدعم الفني جاهز لمساعدتك.';
-} elseif (strpos($prompt, 'أسعار') !== false || strpos($prompt, 'سعر') !== false) {
-    $reply = 'تختلف أسعار الدورات حسب المجال والمدة. تجد سعر كل دورة في صفحتها الخاصة. نقدم أيضاً خصومات مميزة للطلاب والمجموعات.';
+foreach ($platform_questions as $key => $value) {
+    if (strpos($prompt, $key) !== false) {
+        echo json_encode([
+            'success' => true,
+            'reply' => $value,
+            'received_prompt' => $prompt
+        ]);
+        exit;
+    }
 }
 
-// Send the response
-echo json_encode([
-    'success' => true,
-    'reply' => $reply,
-    'received_prompt' => $prompt
-]);
+// Use Google Search for other questions
+try {
+    $gemini_api_key = getenv('GEMINI_API_KEY');
+    if (!$gemini_api_key) {
+        throw new Exception('Gemini API key not found.');
+    }
+
+    $client = new \Google\Client();
+    $client->setApiKey($gemini_api_key);
+    $gemini = new \Google\Service\AIPlatform($client);
+
+    $response = $gemini->projects_locations_publishers_models->generateContent(
+        'projects/ibdaa-taiz/locations/us-central1/publishers/google/models/gemini-1.0-pro',
+        new \Google\Service\AIPlatform\GenerateContentRequest([
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt]
+                    ]
+                ]
+            ]
+        ])
+    );
+
+    $reply = $response['candidates'][0]['content']['parts'][0]['text'];
+
+    echo json_encode([
+        'success' => true,
+        'reply' => $reply,
+        'received_prompt' => $prompt
+    ]);
+
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error communicating with the AI model.',
+        'reply' => 'عفواً، حدث خطأ أثناء محاولة الإجابة على سؤالك. الرجاء المحاولة مرة أخرى.',
+        'error' => $e->getMessage()
+    ]);
+}

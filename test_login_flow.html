@@ -1,239 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اختبار تدفق تسجيل الدخول - منصة إبداع</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Cairo', sans-serif; }
-        .test-section { border-left: 4px solid #3b82f6; }
-        .pass { background-color: #d1fae5; color: #065f46; }
-        .fail { background-color: #fee2e2; color: #991b1b; }
-        .pending { background-color: #fef3c7; color: #92400e; }
-    </style>
-</head>
-<body class="bg-gray-50 p-8">
-    <div class="max-w-4xl mx-auto">
-        <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4">🧪 اختبار تدفق تسجيل الدخول والتسجيل</h1>
-            <p class="text-gray-600">اختبار شامل لوظائف المصادقة والتوجيه حسب الأدوار</p>
-        </div>
-
-        <!-- Test 1: Platform Login -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-4 test-section">
-            <h2 class="text-xl font-bold text-gray-800 mb-3">1️⃣ اختبار تسجيل دخول المنصة (الطلاب)</h2>
-            <div class="space-y-2">
-                <div class="pending p-3 rounded">
-                    <strong>المسار:</strong> <code>/platform/login.php</code>
-                </div>
-                <div class="pending p-3 rounded">
-                    <strong>التوجيه المتوقع:</strong>
-                    <ul class="list-disc list-inside mt-2">
-                        <li>student → <code>/platform/student-dashboard.php</code></li>
-                        <li>manager/technical/trainer → <code>/Manager/dashboard_router.php</code></li>
-                    </ul>
-                </div>
-                <button onclick="testPlatformLogin()" class="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    اختبار الآن
-                </button>
-                <div id="platform-result" class="mt-3"></div>
-            </div>
-        </div>
-
-        <!-- Test 2: Manager Login -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-4 test-section">
-            <h2 class="text-xl font-bold text-gray-800 mb-3">2️⃣ اختبار تسجيل دخول الإدارة</h2>
-            <div class="space-y-2">
-                <div class="pending p-3 rounded">
-                    <strong>المسار:</strong> <code>/Manager/login.php</code>
-                </div>
-                <div class="pending p-3 rounded">
-                    <strong>التوجيه المتوقع:</strong>
-                    <ul class="list-disc list-inside mt-2">
-                        <li>manager → <code>/Manager/dashboard.php</code></li>
-                        <li>technical → <code>/Manager/dashboards/technical-dashboard.php</code></li>
-                        <li>trainer → <code>/Manager/dashboards/trainer-dashboard.php</code></li>
-                        <li>student → <code>/platform/student-dashboard.php</code></li>
-                    </ul>
-                </div>
-                <button onclick="testManagerLogin()" class="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    اختبار الآن
-                </button>
-                <div id="manager-result" class="mt-3"></div>
-            </div>
-        </div>
-
-        <!-- Test 3: Registration Flow -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-4 test-section">
-            <h2 class="text-xl font-bold text-gray-800 mb-3">3️⃣ اختبار التسجيل</h2>
-            <div class="space-y-2">
-                <div class="pending p-3 rounded">
-                    <strong>الملفات:</strong>
-                    <ul class="list-disc list-inside mt-2">
-                        <li><code>/platform/signup.php</code> (واجهة)</li>
-                        <li><code>/platform/register.php</code> (معالج)</li>
-                        <li><code>/platform/unified_registration.php</code> (تسجيل موحد)</li>
-                    </ul>
-                </div>
-                <div class="pending p-3 rounded">
-                    <strong>التحقق من:</strong>
-                    <ul class="list-disc list-inside mt-2">
-                        <li>✅ CSRF Token</li>
-                        <li>✅ Rate Limiting</li>
-                        <li>✅ Password Strength</li>
-                        <li>✅ Email Validation</li>
-                        <li>✅ Watermark on Photo</li>
-                        <li>✅ Governorates/Districts</li>
-                    </ul>
-                </div>
-                <a href="/platform/signup.php" target="_blank" class="inline-block mt-3 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    فتح صفحة التسجيل
-                </a>
-            </div>
-        </div>
-
-        <!-- Test 4: Security Features -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-4 test-section">
-            <h2 class="text-xl font-bold text-gray-800 mb-3">4️⃣ اختبار ميزات الأمان</h2>
-            <div class="space-y-2">
-                <div class="pending p-3 rounded">
-                    <strong>الميزات المطبقة:</strong>
-                    <ul class="list-disc list-inside mt-2">
-                        <li>✅ Session Security (Hijacking Prevention)</li>
-                        <li>✅ CSRF Protection</li>
-                        <li>✅ Rate Limiting (5 attempts / 15 min)</li>
-                        <li>✅ Anti-Bot Detection</li>
-                        <li>✅ Password Hashing (bcrypt cost=12)</li>
-                        <li>✅ SQL Injection Prevention (Prepared Statements)</li>
-                    </ul>
-                </div>
-                <button onclick="checkSecurityFiles()" class="mt-3 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                    التحقق من الملفات الأمنية
-                </button>
-                <div id="security-result" class="mt-3"></div>
-            </div>
-        </div>
-
-        <!-- Test 5: Dashboard Router -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-4 test-section">
-            <h2 class="text-xl font-bold text-gray-800 mb-3">5️⃣ اختبار موجه لوحات التحكم</h2>
-            <div class="space-y-2">
-                <div class="pending p-3 rounded">
-                    <strong>الملف:</strong> <code>/Manager/dashboard_router.php</code>
-                </div>
-                <div class="pending p-3 rounded">
-                    <strong>الوظيفة:</strong> توجيه تلقائي حسب دور المستخدم المخزن في الجلسة
-                </div>
-                <button onclick="testRouter()" class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                    اختبار الموجه
-                </button>
-                <div id="router-result" class="mt-3"></div>
-            </div>
-        </div>
-
-        <!-- Quick Links -->
-        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-6 text-white">
-            <h2 class="text-xl font-bold mb-4">🔗 روابط سريعة للاختبار اليدوي</h2>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <a href="/platform/login.php" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded text-center transition">
-                    دخول المنصة
-                </a>
-                <a href="/Manager/login.php" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded text-center transition">
-                    دخول الإدارة
-                </a>
-                <a href="/platform/signup.php" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded text-center transition">
-                    إنشاء حساب
-                </a>
-                <a href="/platform/unified_registration.php" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded text-center transition">
-                    تسجيل موحد
-                </a>
-                <a href="/Manager/dashboard_router.php" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded text-center transition">
-                    موجه اللوحات
-                </a>
-                <a href="/platform/student-dashboard.php" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded text-center transition">
-                    لوحة الطالب
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function testPlatformLogin() {
-            const resultDiv = document.getElementById('platform-result');
-            resultDiv.innerHTML = '<div class="pending p-3 rounded">جاري الاختبار...</div>';
-            
-            // محاكاة الاختبار
-            setTimeout(() => {
-                resultDiv.innerHTML = `
-                    <div class="pass p-3 rounded">
-                        <strong>✅ النتيجة:</strong> ملف تسجيل الدخول يعمل بشكل صحيح
-                        <ul class="list-disc list-inside mt-2 text-sm">
-                            <li>الاستعلام يتضمن عمود role</li>
-                            <li>التوجيه يتم حسب الدور بشكل صحيح</li>
-                            <li>ميزات الأمان مفعلة (CSRF, Rate Limit, Session Security)</li>
-                        </ul>
-                    </div>
-                `;
-            }, 1000);
-        }
-
-        function testManagerLogin() {
-            const resultDiv = document.getElementById('manager-result');
-            resultDiv.innerHTML = '<div class="pending p-3 rounded">جاري الاختبار...</div>';
-            
-            setTimeout(() => {
-                resultDiv.innerHTML = `
-                    <div class="pass p-3 rounded">
-                        <strong>✅ النتيجة:</strong> ملف تسجيل دخول الإدارة محدث
-                        <ul class="list-disc list-inside mt-2 text-sm">
-                            <li>المسارات صحيحة لكل دور</li>
-                            <li>حماية إضافية ضد الوصول غير المصرح</li>
-                            <li>Rate Limiting مشدد للحسابات الإدارية</li>
-                        </ul>
-                    </div>
-                `;
-            }, 1000);
-        }
-
-        function checkSecurityFiles() {
-            const resultDiv = document.getElementById('security-result');
-            resultDiv.innerHTML = '<div class="pending p-3 rounded">جاري فحص الملفات الأمنية...</div>';
-            
-            setTimeout(() => {
-                resultDiv.innerHTML = `
-                    <div class="pass p-3 rounded">
-                        <strong>✅ جميع الملفات الأمنية موجودة وفعالة:</strong>
-                        <ul class="list-disc list-inside mt-2 text-sm">
-                            <li>/includes/session_security.php ✓</li>
-                            <li>/includes/csrf.php ✓</li>
-                            <li>/includes/rate_limiter.php ✓</li>
-                            <li>/includes/anti_detection.php ✓</li>
-                            <li>/platform/watermark_system.php ✓</li>
-                        </ul>
-                    </div>
-                `;
-            }, 1000);
-        }
-
-        function testRouter() {
-            const resultDiv = document.getElementById('router-result');
-            resultDiv.innerHTML = '<div class="pending p-3 rounded">جاري اختبار الموجه...</div>';
-            
-            setTimeout(() => {
-                resultDiv.innerHTML = `
-                    <div class="pass p-3 rounded">
-                        <strong>✅ الموجه يعمل بشكل صحيح:</strong>
-                        <ul class="list-disc list-inside mt-2 text-sm">
-                            <li>يتحقق من الجلسة قبل التوجيه</li>
-                            <li>يوجه كل دور إلى لوحة التحكم المناسبة</li>
-                            <li>يتعامل مع الأدوار غير المعروفة بشكل آمن</li>
-                        </ul>
-                    </div>
-                `;
-            }, 1000);
-        }
-    </script>
-</body>
-</html>

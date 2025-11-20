@@ -1,9 +1,5 @@
-<?php
-/**
- * Certificate Designer Page
- * صفحة تصميم الشهادات
- */
-?>
+<link rel="stylesheet" href="dashboards/css/certificate-designer.css">
+
 <div class="bg-white rounded-2xl shadow p-8">
     <div class="flex items-center gap-4 mb-6">
         <div class="p-3 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg">
@@ -15,158 +11,60 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <!-- Controls -->
         <div class="lg:col-span-1 space-y-6">
-            <!-- Template Selection -->
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">اختر قالب</label>
-                <select id="templateSelector" class="w-full px-4 py-2 border border-slate-300 rounded-lg">
-                    <option value="default">القالب الافتراضي</option>
-                    <option value="modern">القالب الحديث</option>
-                    <option value="formal">القالب الرسمي</option>
-                </select>
+                <label class="block text-sm font-medium text-slate-700 mb-2">اختر قالب محفوظ</label>
+                <select id="templateSelector" class="w-full px-4 py-2 border border-slate-300 rounded-lg"></select>
             </div>
-
-            <!-- Dynamic Fields -->
             <div>
-                <h4 class="font-bold text-slate-800 mb-2">الحقول الديناميكية</h4>
+                <h4 class="font-bold text-slate-800 mb-2">عناصر التصميم</h4>
                 <div class="space-y-2">
-                    <button class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm hover:bg-slate-200" data-field="student_name">اسم الطالب</button>
-                    <button class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm hover:bg-slate-200" data-field="course_name">اسم الدورة</button>
-                    <button class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm hover:bg-slate-200" data-field="completion_date">تاريخ الإكمال</button>
-                    <button class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm hover:bg-slate-200" data-field="certificate_id">رقم الشهادة</button>
-                </div>
-            </div>
-
-            <!-- Customization -->
-            <div>
-                <h4 class="font-bold text-slate-800 mb-2">تخصيص</h4>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700">لون الخلفية</label>
-                        <input type="color" id="bgColor" value="#ffffff" class="w-full h-10 p-1 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700">لون النص</label>
-                        <input type="color" id="textColor" value="#000000" class="w-full h-10 p-1 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700">شعار المعهد</label>
-                        <input type="file" id="logoUploader" class="text-sm">
-                    </div>
+                    <button id="addTextBtn" class="w-full text-left bg-slate-100 text-slate-700 px-3 py-2 rounded text-sm hover:bg-slate-200">إضافة نص</button>
+                    <label class="w-full text-left bg-slate-100 text-slate-700 px-3 py-2 rounded text-sm hover:bg-slate-200 cursor-pointer">
+                        <span>إضافة صورة</span>
+                        <input type="file" id="addImageBtn" accept="image/*" class="hidden">
+                    </label>
                 </div>
             </div>
             
+            <div id="propertiesPanel" class="bg-slate-50 p-4 rounded-lg space-y-4 transform translate-x-full lg:translate-x-0">
+                <h4 class="font-bold text-slate-800">خصائص العنصر</h4>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">حجم الخط</label>
+                        <input type="number" id="fontSize" min="8" max="120" class="w-full mt-1 p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">لون الخط</label>
+                        <input type="color" id="fontColor" class="w-full h-10 mt-1 p-1 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">عائلة الخط</label>
+                        <select id="fontFamily" class="w-full mt-1 p-2 border rounded">
+                            <option value="Cairo, sans-serif">Cairo</option>
+                            <option value="Arial, sans-serif">Arial</option>
+                            <option value="Times New Roman, serif">Times New Roman</option>
+                            <option value="Courier New, monospace">Courier New</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex gap-3 pt-4">
-                <button id="previewBtn" class="flex-1 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">معاينة</button>
-                <button id="saveTemplateBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">حفظ القالب</button>
+                <button id="saveTemplateBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">حفظ كقالب جديد</button>
             </div>
         </div>
 
         <!-- Certificate Preview -->
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-3">
             <div id="certificatePreview" class="w-full aspect-[297/210] border-2 border-slate-300 rounded-lg p-8 bg-white" style="font-family: 'Cairo', sans-serif;">
-                <!-- Content will be generated by JS -->
+                <!-- Draggable elements will be loaded here -->
             </div>
         </div>
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const preview = document.getElementById('certificatePreview');
-    const templateSelector = document.getElementById('templateSelector');
-    const bgColorInput = document.getElementById('bgColor');
-    const textColorInput = document.getElementById('textColor');
-    const logoUploader = document.getElementById('logoUploader');
-    const previewBtn = document.getElementById('previewBtn');
-    const saveTemplateBtn = document.getElementById('saveTemplateBtn');
-
-    const defaultTemplates = {
-        default: `
-            <div class="text-center">
-                <img id="logo" src="https://via.placeholder.com/150x80.png?text=IBDAA+TAIZ" alt="Logo" class="mx-auto mb-4 h-20">
-                <h1 class="text-4xl font-bold">شهادة إتمام دورة</h1>
-                <p class="text-lg mt-4">تشهد منصة إبداع تعز بأن</p>
-                <p class="text-3xl font-bold my-6">[student_name]</p>
-                <p class="text-lg">قد أتم بنجاح دورة</p>
-                <p class="text-2xl font-semibold my-4">[course_name]</p>
-                <p class="text-sm">وذلك بتاريخ [completion_date]</p>
-                <div class="flex justify-between mt-16 text-sm">
-                    <span>المدير العام</span>
-                    <span>مدير التدريب</span>
-                </div>
-            </div>
-        `,
-        modern: `
-            <div class="flex h-full">
-                <div class="w-1/3 bg-gray-800 text-white p-8 flex flex-col justify-center items-center">
-                    <img id="logo" src="https://via.placeholder.com/120x120.png?text=IT" alt="Logo" class="h-24 w-24 rounded-full mb-6">
-                    <h2 class="text-2xl font-bold">شهادة</h2>
-                    <p class="text-lg">إتمام</p>
-                </div>
-                <div class="w-2/3 p-8 flex flex-col justify-center">
-                    <p class="text-lg">This is to certify that</p>
-                    <p class="text-4xl font-bold my-4">[student_name]</p>
-                    <p class="text-lg">has successfully completed the course</p>
-                    <p class="text-3xl font-semibold my-4">[course_name]</p>
-                    <p class="text-sm text-gray-500">on [completion_date]</p>
-                </div>
-            </div>
-        `,
-        formal: `
-            <div class="border-4 border-gray-800 h-full p-8 flex flex-col items-center text-center">
-                <h1 class="text-5xl font-serif">Certificate of Completion</h1>
-                <p class="text-xl mt-8">This certificate is proudly presented to</p>
-                <p class="text-4xl font-bold my-8">[student_name]</p>
-                <p class="text-xl">For successfully completing the course</p>
-                <p class="text-3xl font-semibold my-6">[course_name]</p>
-                <p class="text-md">Issued on [completion_date]</p>
-                <div class="mt-auto w-full flex justify-between">
-                    <p class="border-t-2 border-gray-800 px-8 pt-2">Signature</p>
-                    <p class="border-t-2 border-gray-800 px-8 pt-2">Date</p>
-                </div>
-            </div>
-        `
-    };
-
-    function updatePreview() {
-        const template = templateSelector.value;
-        let content = defaultTemplates[template];
-        
-        // Replace placeholders
-        content = content.replace(/\[student_name\]/g, 'عبدالله الحاشدي');
-        content = content.replace(/\[course_name\]/g, 'تطوير تطبيقات الويب');
-        content = content.replace(/\[completion_date\]/g, new Date().toLocaleDateString('ar-EG'));
-        content = content.replace(/\[certificate_id\]/g, 'IBDAA-CERT-12345');
-
-        preview.innerHTML = content;
-        preview.style.backgroundColor = bgColorInput.value;
-        preview.style.color = textColorInput.value;
-        
-        const logoImg = preview.querySelector('#logo');
-        if (logoUploader.files && logoUploader.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if(logoImg) logoImg.src = e.target.result;
-            }
-            reader.readAsDataURL(logoUploader.files[0]);
-        }
-    }
-
-    previewBtn.addEventListener('click', updatePreview);
-    templateSelector.addEventListener('change', updatePreview);
-    bgColorInput.addEventListener('input', updatePreview);
-    textColorInput.addEventListener('input', updatePreview);
-    logoUploader.addEventListener('change', updatePreview);
-
-    saveTemplateBtn.addEventListener('click', () => {
-        // In a real app, this would save the template settings to the backend
-        showToast('تم حفظ القالب بنجاح (محاكاة)', 'success');
-    });
-
-    // Initial preview
-    updatePreview();
-});
-</script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script src="dashboards/js/certificate-designer.js"></script>

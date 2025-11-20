@@ -19,17 +19,31 @@ class EmailSender {
     private $mailer;
     private $conn;
     
-    // إعدادات SMTP (يمكن نقلها إلى config.php)
-    private $smtp_host = 'smtp.gmail.com';
-    private $smtp_port = 587;
-    private $smtp_username = 'your-email@gmail.com'; // غيّر هذا
-    private $smtp_password = 'your-app-password'; // غيّر هذا
-    private $smtp_from_email = 'noreply@ibdaa-taiz.com';
-    private $smtp_from_name = 'منصة إبداع - تعز';
+    // إعدادات SMTP
+    private $config;
     
     public function __construct($db_connection) {
         $this->conn = $db_connection;
         $this->mailer = new PHPMailer(true);
+        
+        // Load config
+        $configFile = __DIR__ . '/config.php';
+        if (file_exists($configFile)) {
+            $this->config = require $configFile;
+        } else {
+            // Fallback defaults
+            $this->config = [
+                'smtp' => [
+                    'host' => 'smtp.gmail.com',
+                    'port' => 587,
+                    'username' => 'ha717781053@gmail.com',
+                    'password' => '',
+                    'from_email' => 'ha717781053@gmail.com',
+                    'from_name' => 'منصة إبداع للتدريب والتأهيل'
+                ]
+            ];
+        }
+        
         $this->configureSMTP();
     }
     
@@ -38,18 +52,20 @@ class EmailSender {
      */
     private function configureSMTP() {
         try {
+            $smtp = $this->config['smtp'];
+            
             // إعدادات السيرفر
             $this->mailer->isSMTP();
-            $this->mailer->Host = $this->smtp_host;
+            $this->mailer->Host = $smtp['host'];
             $this->mailer->SMTPAuth = true;
-            $this->mailer->Username = $this->smtp_username;
-            $this->mailer->Password = $this->smtp_password;
+            $this->mailer->Username = $smtp['username'];
+            $this->mailer->Password = $smtp['password'];
             $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $this->mailer->Port = $this->smtp_port;
+            $this->mailer->Port = $smtp['port'];
             
             // إعدادات عامة
             $this->mailer->CharSet = 'UTF-8';
-            $this->mailer->setFrom($this->smtp_from_email, $this->smtp_from_name);
+            $this->mailer->setFrom($smtp['from_email'], $smtp['from_name']);
             
             // تعطيل التحقق من SSL في البيئة المحلية
             $this->mailer->SMTPOptions = array(
@@ -349,6 +365,52 @@ class EmailSender {
         $message .= "منصة إبداع - تعز";
         
         return $this->sendEmail($email, $subject, $message);
+    }
+    
+    /**
+     * إرسال شهادة عبر البريد الإلكتروني
+     */
+    public function sendCertificate($to, $name, $courseTitle, $attachmentPath) {
+        try {
+            $subject = "شهادة إتمام دورة: " . $courseTitle;
+            $body = "
+                <div style='font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 20px; background-color: #f9fafb;'>
+                    <div style='background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
+                        <h2 style='color: #1e40af; margin-bottom: 20px;'>مبارك لك التخرج! 🎉</h2>
+                        <p style='font-size: 16px; color: #374151;'>عزيزي/تي <strong>{$name}</strong>،</p>
+                        <p style='font-size: 16px; color: #374151;'>يسرنا أن نرسل إليك شهادة إتمام دورة <strong>{$courseTitle}</strong>.</p>
+                        <p style='font-size: 16px; color: #374151;'>نتمنى لك دوام التوفيق والنجاح في مسيرتك المهنية.</p>
+                        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;'>
+                            <p style='font-size: 14px; color: #6b7280;'>مع تحيات،<br>فريق منصة إبداع للتدريب والتأهيل</p>
+                        </div>
+                    </div>
+                </div>
+            ";
+
+            // إعادة تعيين المستلمين والمرفقات
+            $this->mailer->clearAddresses();
+            $this->mailer->clearAttachments();
+            
+            $this->mailer->addAddress($to, $name);
+            $this->mailer->Subject = $subject;
+            $this->mailer->isHTML(true);
+            $this->mailer->Body = $body;
+            $this->mailer->AltBody = strip_tags($body);
+            
+            if (file_exists($attachmentPath)) {
+                $this->mailer->addAttachment($attachmentPath, 'Certificate.pdf');
+            } else {
+                error_log("Certificate file not found: " . $attachmentPath);
+                return ['success' => false, 'message' => 'ملف الشهادة غير موجود'];
+            }
+            
+            $this->mailer->send();
+            return ['success' => true, 'message' => 'تم إرسال الشهادة بنجاح'];
+            
+        } catch (Exception $e) {
+            error_log("Certificate Email Error: " . $this->mailer->ErrorInfo);
+            return ['success' => false, 'message' => $this->mailer->ErrorInfo];
+        }
     }
     
     /**

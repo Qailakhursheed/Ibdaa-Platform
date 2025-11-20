@@ -1,0 +1,42 @@
+#certificatePreview {
+    position: relative;
+    overflow: hidden;
+}
+
+.draggable {
+    position: absolute;
+    padding: 5px;
+    border: 1px dashed transparent;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
+.draggable:hover {
+    border-color: #a5b4fc; /* Indigo-300 */
+}
+
+.draggable.selected {
+    border: 2px solid #4f46e5; /* Indigo-600 */
+    z-index: 10;
+}
+
+.resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #4f46e5;
+    border: 1px solid white;
+    border-radius: 50%;
+    z-index: 11;
+}
+
+.resize-handle.bottom-right {
+    bottom: -5px;
+    right: -5px;
+    cursor: se-resize;
+}
+
+#propertiesPanel {
+    transition: transform 0.3s ease;
+}

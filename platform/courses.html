@@ -1,582 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>الدورات التدريبية - منصة إبداع</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-    body {
-      font-family: 'Cairo', sans-serif;
-      background-color: #f9fafb;
-    }
-
-    .course-card {
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .course-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(59, 130, 246, 0.1));
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: 0;
-    }
-    
-    .course-card:hover::before {
-      opacity: 1;
-    }
-    
-    .course-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
-    }
-    
-    .course-card img {
-      transition: transform 0.5s ease;
-    }
-    
-    .course-card:hover img {
-      transform: scale(1.1);
-    }
-    
-    .overlay {
-      background: rgba(0,0,0,0.55);
-      -webkit-backdrop-filter: blur(3px);
-      backdrop-filter: blur(3px);
-    }
-    
-    .watermark {
-      position: absolute;
-      bottom: 15px;
-      right: 15px;
-      width: 60px;
-      height: 60px;
-      opacity: 0.3;
-      z-index: 2;
-      pointer-events: none;
-    }
-    
-    .badge {
-      animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    
-    .search-container {
-      position: relative;
-    }
-    
-    .search-container input:focus {
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-    
-    .filter-btn.active {
-      background: linear-gradient(135deg, #6366f1, #3b82f6);
-      color: white;
-      transform: scale(1.05);
-    }
-    
-    .course-hidden {
-      display: none !important;
-    }
-    
-    .stats-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 20px;
-      padding: 30px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-  </style>
-</head>
-
-<body class="text-gray-900">
-
-  <!-- الهيدر -->
-  <header class="bg-white shadow-md sticky top-0 z-50">
-    <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-      <a href="index.html" class="flex items-center space-x-3 rtl:space-x-reverse font-bold text-2xl text-indigo-700 hover:text-indigo-900 transition">
-        <img src="photos/Sh.jpg" alt="شعار منصة إبداع" class="h-10 w-10 rounded-full">
-        <span>منصة إبداع</span>
-      </a>
-      <a href="index.html#home" class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition">العودة للرئيسية</a>
-    </nav>
-  </header>
-
-  <!-- الهيرو -->
-  <section class="relative h-[400px] flex items-center justify-center text-center text-white overflow-hidden">
-    <!-- background (slightly enhanced for clarity) -->
-  <img src="photos/bg.png" class="absolute inset-0 w-full h-full object-cover hero-bg" alt="background" />
-  <!-- lighter overlay so background is clearer but text/logo remain readable -->
-  <div class="overlay absolute inset-0"></div>
-    <!-- centered logo inside the hero -->
-    <div class="relative z-10 flex items-center justify-center">
-      <img src="photos/Sh.jpg" alt="شعار منصة إبداع" class="h-28 w-28 rounded-full border-4 border-white shadow-lg" />
-    </div>
-    <div class="relative z-10 px-6">
-      <h1 class="text-4xl md:text-5xl font-bold mb-4">الدورات التدريبية في منصة إبداع</h1>
-      <p class="text-lg md:text-xl max-w-3xl mx-auto text-gray-100">
-        مركز متخصص في الرخصة الدولية (ICDL) ودبلوم الحاسوب المتكامل، وبرامج احترافية في التقنية واللغة والمهارات.
-      </p>
-    </div>
-  </section>
-
-  <!-- المحتوى الرئيسي -->
-  <main class="py-20 bg-gradient-to-b from-white via-indigo-50 to-white">
-    <div class="container mx-auto px-6">
-      
-      <!-- إحصائيات سريعة -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
-        <div class="stats-card">
-          <i data-lucide="book-open" class="w-12 h-12 mx-auto mb-3"></i>
-          <h3 class="text-4xl font-black mb-2">8+</h3>
-          <p class="text-indigo-100">دورة تدريبية</p>
-        </div>
-        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-          <i data-lucide="users" class="w-12 h-12 mx-auto mb-3"></i>
-          <h3 class="text-4xl font-black mb-2">500+</h3>
-          <p class="text-pink-100">متدرب</p>
-        </div>
-        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-          <i data-lucide="award" class="w-12 h-12 mx-auto mb-3"></i>
-          <h3 class="text-4xl font-black mb-2">95%</h3>
-          <p class="text-cyan-100">نسبة النجاح</p>
-        </div>
-        <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-          <i data-lucide="clock" class="w-12 h-12 mx-auto mb-3"></i>
-          <h3 class="text-4xl font-black mb-2">24/7</h3>
-          <p class="text-green-100">دعم فني</p>
-        </div>
-      </div>
-      
-      <!-- مقدمة -->
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-black text-gray-900 mb-4">🎓 اكتشف دوراتنا التدريبية</h2>
-        <p class="text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed mb-8">
-          تُعد <strong>منصة إبداع</strong> مركزًا متخصصًا في برامج الرخصة الدولية لقيادة الحاسوب (ICDL) ودبلوم الحاسوب المتكامل، 
-          إلى جانب برامج أخرى في مجالات تقنية ولغوية ومهنية متنوعة.
-        </p>
-      </div>
-
-      <!-- البحث والفلترة -->
-      <div class="max-w-5xl mx-auto mb-12">
-        <div class="bg-white rounded-2xl shadow-xl p-8">
-          <!-- البحث -->
-          <div class="search-container mb-6">
-            <div class="relative">
-              <input type="text" id="searchInput" 
-                placeholder="🔍 ابحث عن دورة... (ICDL، Excel، English، إلخ)"
-                class="w-full px-6 py-4 pr-14 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg transition">
-              <i data-lucide="search" class="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6"></i>
-            </div>
-          </div>
-          
-          <!-- الفلاتر -->
-          <div>
-            <p class="text-gray-700 font-semibold mb-3 flex items-center gap-2">
-              <i data-lucide="filter" class="w-5 h-5 text-indigo-600"></i>
-              تصفية حسب المجال:
-            </p>
-            <div class="flex flex-wrap gap-3">
-              <button class="filter-btn active px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="all">
-                الكل
-              </button>
-              <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="icdl">
-                ICDL & دبلوم
-              </button>
-              <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="programming">
-                برمجة وتقنية
-              </button>
-              <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="data">
-                تحليل بيانات
-              </button>
-              <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="language">
-                لغات
-              </button>
-              <button class="filter-btn px-6 py-3 rounded-full border-2 border-indigo-200 hover:border-indigo-400 transition font-semibold" data-filter="skills">
-                مهارات شخصية
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- أقسام الدورات -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        <!-- دورة ICDL -->
-        <div class="course-card bg-gray-50 rounded-2xl overflow-hidden border shadow-lg" data-category="icdl" data-keywords="icdl رخصة دولية حاسوب word excel powerpoint">
-          <div class="relative overflow-hidden h-48">
-            <img src="https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover" alt="ICDL" />
-            <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
-            <span class="badge absolute top-4 left-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold">⭐ الأكثر طلباً</span>
-          </div>
-          <div class="p-6 relative z-10">
-            <h3 class="text-2xl font-bold text-indigo-700 mb-3">الرخصة الدولية ICDL</h3>
-            <p class="text-gray-700 mb-4">
-              دورة احترافية تمنحك المهارات العملية لاستخدام الحاسوب والتطبيقات المكتبية بكفاءة عالمية مع شهادة معترف بها دوليًا.
-            </p>
-            <ul class="list-disc text-gray-600 ms-6">
-              <li>التعرف على مكونات الحاسوب</li>
-              <li>إتقان برامج Word, Excel, PowerPoint</li>
-              <li>مهارات الإنترنت والبريد الإلكتروني</li>
-            </ul>
-            <a href="application.php?course=ICDL" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
-              التسجيل في هذه الدورة
-            </a>
-          </div>
-        </div>
-
-        <!-- دبلوم الحاسوب المتكامل -->
-        <div class="course-card bg-gray-50 rounded-2xl overflow-hidden border shadow-lg" data-category="icdl" data-keywords="دبلوم حاسوب صيانة أنظمة تشغيل">
-          <div class="relative overflow-hidden h-48">
-            <img src="https://images.unsplash.com/photo-1603570418855-0e035b1d8a86?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover" alt="دبلوم الحاسوب" />
-            <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
-          </div>
-          <div class="p-6 relative z-10">
-            <h3 class="text-2xl font-bold text-indigo-700 mb-3">دبلوم الحاسوب المتكامل</h3>
-            <p class="text-gray-700 mb-4">
-              برنامج شامل يجمع بين الأساسيات النظرية والتطبيق العملي لتأهيلك كخبير في استخدام الحاسوب وتطبيقاته في بيئة العمل الحديثة.
-            </p>
-            <ul class="list-disc text-gray-600 ms-6">
-              <li>صيانة وإدارة الأجهزة</li>
-              <li>أنظمة التشغيل والتطبيقات المكتبية</li>
-              <li>مشروع تخرج تطبيقي</li>
-            </ul>
-            <a href="application.php?course=دبلوم الحاسوب المتكامل" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
-              التسجيل في هذه الدورة
-            </a>
-          </div>
-        </div>
-
-        <!-- علوم الحاسوب -->
-        <div class="course-card bg-gray-50 rounded-2xl overflow-hidden border shadow-lg" data-category="programming" data-keywords="علوم حاسوب برمجة python تحليل نظم">
-          <div class="relative overflow-hidden h-48">
-            <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover" alt="علوم الحاسوب" />
-            <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
-            <span class="badge absolute top-4 left-4 bg-green-400 text-green-900 px-3 py-1 rounded-full text-sm font-bold">🆕 جديد</span>
-          </div>
-          <div class="p-6 relative z-10">
-            <h3 class="text-2xl font-bold text-indigo-700 mb-3">علوم الحاسوب وتطبيقاته</h3>
-            <p class="text-gray-700 mb-4">
-              يكتسب المتدرب أساسيات البرمجة، وتحليل النظم، وتصميم الحلول التقنية، مع تطبيقات عملية على مشاريع واقعية.
-            </p>
-            <ul class="list-disc text-gray-600 ms-6">
-              <li>المنطق البرمجي وهياكل البيانات</li>
-              <li>تطبيقات بلغة Python</li>
-              <li>تصميم حلول تقنية</li>
-            </ul>
-            <a href="application.php?course=علوم الحاسوب وتطبيقاته" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
-              التسجيل في هذه الدورة
-            </a>
-          </div>
-        </div>
-
-        <!-- تصميم الأنظمة -->
-        <div class="course-card bg-gray-50 rounded-2xl overflow-hidden border shadow-lg" data-category="programming" data-keywords="تصميم أنظمة ui ux قواعد بيانات">
-          <div class="relative overflow-hidden h-48">
-            <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover" alt="تصميم الأنظمة" />
-            <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
-          </div>
-          <div class="p-6 relative z-10">
-            <h3 class="text-2xl font-bold text-indigo-700 mb-3">تصميم الأنظمة التعليمية والإدارية</h3>
-            <p class="text-gray-700 mb-4">
-              تدريب موجه للمدرسين والمطورين لإنشاء بيئات تعليمية ذكية وأنظمة إدارة فعالة للمؤسسات.
-            </p>
-            <ul class="list-disc text-gray-600 ms-6">
-              <li>تحليل الاحتياجات التعليمية</li>
-              <li>تصميم واجهات المستخدم UX/UI</li>
-              <li>إدارة قواعد البيانات التعليمية</li>
-            </ul>
-            <a href="application.php?course=تصميم الأنظمة التعليمية والإدارية" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
-              التسجيل في هذه الدورة
-            </a>
-          </div>
-        </div>
-
-        <!-- Excel والتحليل -->
-        <div class="course-card bg-gray-50 rounded-2xl overflow-hidden border shadow-lg" data-category="data" data-keywords="excel اكسل تحليل بيانات جداول محورية">
-          <div class="relative overflow-hidden h-48">
-            <img src="https://images.unsplash.com/photo-1625246333195-76f62d3dba8a?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover" alt="Excel" />
-            <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
-            <span class="badge absolute top-4 left-4 bg-blue-400 text-blue-900 px-3 py-1 rounded-full text-sm font-bold">🔥 رائج</span>
-          </div>
-          <div class="p-6 relative z-10">
-            <h3 class="text-2xl font-bold text-indigo-700 mb-3">إكسل المتقدم وتحليل البيانات</h3>
-            <p class="text-gray-700 mb-4">
-              مصمم للطلاب والمدرسين لتطوير مهارات تحليل البيانات وإنشاء تقارير تفاعلية باستخدام أدوات Excel الحديثة.
-            </p>
-            <ul class="list-disc text-gray-600 ms-6">
-              <li>تحليل البيانات باستخدام الصيغ والدوال</li>
-              <li>الجداول المحورية ولوحات التحكم</li>
-              <li>الربط مع مصادر بيانات خارجية</li>
-            </ul>
-            <a href="application.php?course=إكسل المتقدم وتحليل البيانات" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
-              التسجيل في هذه الدورة
-            </a>
-          </div>
-        </div>
-
-        <!-- اللغة الإنجليزية -->
-        <div class="course-card bg-gray-50 rounded-2xl overflow-hidden border shadow-lg" data-category="language" data-keywords="انجليزي english ielts toefl محادثة">
-          <div class="relative overflow-hidden h-48">
-            <img src="https://images.unsplash.com/photo-1518081461904-9be2b0cc9a2d?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover" alt="اللغة الإنجليزية" />
-            <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
-          </div>
-          <div class="p-6 relative z-10">
-            <h3 class="text-2xl font-bold text-indigo-700 mb-3">اللغة الإنجليزية</h3>
-            <p class="text-gray-700 mb-4">
-              مستويات متعددة تبدأ من المبتدئين حتى المتقدمين، مع تركيز على التواصل العملي ومهارات الاستماع والكتابة.
-            </p>
-            <ul class="list-disc text-gray-600 ms-6">
-              <li>مهارات المحادثة والنطق</li>
-              <li>مفردات الحياة اليومية والأعمال</li>
-              <li>التحضير لاختبارات IELTS و TOEFL</li>
-            </ul>
-            <a href="application.php?course=اللغة الإنجليزية" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
-              التسجيل في هذه الدورة
-            </a>
-          </div>
-        </div>
-
-        <!-- المهارات الشخصية -->
-        <div class="course-card bg-gray-50 rounded-2xl overflow-hidden border shadow-lg md:col-span-2 lg:col-span-3" data-category="skills" data-keywords="مهارات شخصية قيادة تواصل إدارة وقت">
-          <div class="relative overflow-hidden h-56">
-            <img src="https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&w=1600&q=80" class="w-full h-full object-cover" alt="المهارات الشخصية" />
-            <img src="photos/Sh.jpg" alt="شعار إبداع" class="watermark rounded-full">
-          </div>
-          <div class="p-6 relative z-10">
-            <h3 class="text-2xl font-bold text-indigo-700 mb-3">تنمية المهارات الشخصية والمهنية</h3>
-            <p class="text-gray-700 mb-4">
-              برنامج موجه للطلاب والمدرسين لتنمية مهارات التواصل، القيادة، إدارة الوقت، والعمل الجماعي، بما يتناسب مع احتياجات سوق العمل.
-            </p>
-            <ul class="list-disc text-gray-600 ms-6">
-              <li>إدارة الوقت والتخطيط الفعّال</li>
-              <li>القيادة وبناء الفرق</li>
-              <li>مهارات العرض والإقناع</li>
-            </ul>
-            <a href="application.php?course=تنمية المهارات الشخصية والمهنية" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
-              التسجيل في هذه الدورة
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- الأهداف والمخرجات -->
-      <div class="mt-20 text-center max-w-5xl mx-auto">
-        <h2 class="text-3xl font-bold text-gray-900 mb-6">🎯 أهداف البرامج التدريبية</h2>
-        <p class="text-gray-700 text-lg leading-relaxed mb-8">
-          تهدف منصة <strong>إبداع للتدريب والتأهيل</strong> إلى تمكين المتدربين من امتلاك المهارات الرقمية الحديثة،
-          وربط المعرفة النظرية بالتطبيق العملي، وتأهيلهم للتميز في بيئة العمل المستقبلية.
-        </p>
-
-        <h2 class="text-3xl font-bold text-gray-900 mb-6">🎓 المخرجات التعليمية</h2>
-        <ul class="list-disc text-right text-gray-700 mx-auto w-fit text-lg leading-relaxed space-y-2">
-          <li>امتلاك مهارات حاسوبية عملية ومعترف بها دوليًا.</li>
-          <li>إجادة استخدام تطبيقات التحليل والتقارير الرقمية.</li>
-          <li>تعزيز القدرة على الابتكار والتفكير التقني الخلّاق.</li>
-          <li>رفع كفاءة المدرسين في إعداد بيئات تعليمية حديثة.</li>
-          <li>تطوير الكفاءات اللغوية والشخصية للطلاب.</li>
-        </ul>
-      </div>
-    </div>
-  </main>
-
-  <!-- ======= قسم الفيديو (قبل الفوتر مباشرة) ======= -->
-  <section class="bg-gray-100 py-16">
-    <div class="container mx-auto px-6 text-center">
-      <h2 class="text-3xl font-bold text-gray-900 mb-6">
-        🎥 زيارة مدير مديرية المخا لبرنامج دبلوم الحاسوب - يختل المخا
-      </h2>
-      <p class="text-gray-600 max-w-3xl mx-auto mb-8">
-        ضمن فعاليات منصة <strong>إبداع للتدريب والتأهيل</strong>، تم تنظيم زيارة رسمية لمدير مديرية المخا
-        لبرنامج دبلوم الحاسوب في منطقة يختل – المخا، للاطلاع على البرامج التدريبية الميدانية وأثرها في
-        تطوير مهارات الشباب والطلاب في الريف اليمني.
-      </p>
-
-      <div class="relative w-full max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
-        <video controls class="w-full h-auto">
-          <source src="Videos/ad1.mp4" type="video/mp4">
-          متصفحك لا يدعم تشغيل الفيديو.
-        </video>
-      </div>
-    </div>
-  </section>
-  <!-- ======= نهاية قسم الفيديو ======= -->
-
-  <!-- الفوتر -->
-  <footer class="bg-gray-900 text-gray-400 py-10">
-    <div class="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10 text-center md:text-start">
-      <div>
-        <div class="flex items-center justify-center md:justify-start space-x-3 rtl:space-x-reverse mb-3">
-          <img src="photos/Sh.jpg" alt="شعار منصة إبداع" class="h-10 w-10 rounded-full">
-          <h3 class="text-xl font-bold text-white">منصة إبداع</h3>
-        </div>
-        <p>تعز، اليمن</p>
-        <p class="text-sm mt-2">المصمم: RoboStack-Yemen</p>
-      </div>
-      <div>
-        <h4 class="text-lg font-semibold text-white mb-4">روابط سريعة</h4>
-        <ul class="space-y-2">
-          <li><a href="index.html#about" class="hover:text-white">عن المنصة</a></li>
-          <li><a href="courses.html" class="hover:text-white">الدورات</a></li>
-          <li><a href="staff.html" class="hover:text-white">الكادر</a></li>
-          <li><a href="index.html#gallery" class="hover:text-white">المعرض</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4 class="text-lg font-semibold text-white mb-4">تواصل معنا</h4>
-        <p><i data-lucide="phone-call" class="inline w-5 h-5 text-indigo-400"></i> 00967 734 847 037</p>
-        <p><i data-lucide="message-circle" class="inline w-5 h-5 text-green-400"></i> واتساب 1: 00967 713 567 677</p>
-        <p><i data-lucide="message-circle" class="inline w-5 h-5 text-green-400"></i> واتساب 2: 00967 717 781 053</p>
-      </div>
-    </div>
-    <div class="text-center text-sm border-t border-gray-700 mt-10 pt-5">
-      &copy; 2025 منصة إبداع للتدريب والتأهيل — جميع الحقوق محفوظة.
-    </div>
-  </footer>
-
-  <script>
-    lucide.createIcons();
-    
-    // نظام البحث والفلترة
-    const searchInput = document.getElementById('searchInput');
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const courseCards = document.querySelectorAll('.course-card');
-    
-    let currentFilter = 'all';
-    
-    // وظيفة البحث
-    searchInput.addEventListener('input', function() {
-      const searchTerm = this.value.toLowerCase().trim();
-      filterCourses(currentFilter, searchTerm);
-    });
-    
-    // وظيفة الفلترة
-    filterButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        // إزالة active من جميع الأزرار
-        filterButtons.forEach(b => b.classList.remove('active'));
-        // إضافة active للزر المضغوط
-        this.classList.add('active');
-        
-        currentFilter = this.dataset.filter;
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        filterCourses(currentFilter, searchTerm);
-      });
-    });
-    
-    // وظيفة الفلترة الرئيسية
-    function filterCourses(category, searchTerm = '') {
-      let visibleCount = 0;
-      
-      courseCards.forEach(card => {
-        const cardCategory = card.dataset.category;
-        const cardKeywords = card.dataset.keywords?.toLowerCase() || '';
-        const cardText = card.textContent.toLowerCase();
-        
-        // تحقق من الفلتر
-        const matchesFilter = category === 'all' || cardCategory === category;
-        
-        // تحقق من البحث
-        const matchesSearch = searchTerm === '' || 
-                             cardKeywords.includes(searchTerm) || 
-                             cardText.includes(searchTerm);
-        
-        if (matchesFilter && matchesSearch) {
-          card.classList.remove('course-hidden');
-          visibleCount++;
-          // تأثير الظهور التدريجي
-          setTimeout(() => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-              card.style.transition = 'all 0.5s ease';
-              card.style.opacity = '1';
-              card.style.transform = 'translateY(0)';
-            }, 50);
-          }, 0);
-        } else {
-          card.classList.add('course-hidden');
-        }
-      });
-      
-      // عرض رسالة إذا لم يتم إيجاد نتائج
-      const coursesContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3');
-      let noResultsMsg = document.getElementById('noResultsMsg');
-      
-      if (visibleCount === 0) {
-        if (!noResultsMsg) {
-          noResultsMsg = document.createElement('div');
-          noResultsMsg.id = 'noResultsMsg';
-          noResultsMsg.className = 'col-span-full text-center py-16';
-          noResultsMsg.innerHTML = `
-            <div class="bg-yellow-50 rounded-2xl p-12 inline-block">
-              <i data-lucide="search-x" class="w-16 h-16 text-yellow-600 mx-auto mb-4"></i>
-              <h3 class="text-2xl font-bold text-gray-800 mb-2">لم يتم إيجاد دورات</h3>
-              <p class="text-gray-600">جرب كلمات بحث أخرى أو اختر فلتر مختلف</p>
-            </div>
-          `;
-          coursesContainer.appendChild(noResultsMsg);
-          lucide.createIcons();
-        }
-      } else {
-        if (noResultsMsg) {
-          noResultsMsg.remove();
-        }
-      }
-    }
-    
-    // تأثير الظهور عند التحميل
-    window.addEventListener('load', function() {
-      courseCards.forEach((card, index) => {
-        setTimeout(() => {
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(30px)';
-          setTimeout(() => {
-            card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-          }, 100);
-        }, index * 100);
-      });
-    });
-    
-    // تأثير hover على الصور (3D tilt)
-    courseCards.forEach(card => {
-      card.addEventListener('mousemove', function(e) {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        
-        const rotateX = (y - centerY) / 20;
-        const rotateY = (centerX - x) / 20;
-        
-        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px) scale(1.02)`;
-      });
-      
-      card.addEventListener('mouseleave', function() {
-        card.style.transform = '';
-      });
-    });
-  </script>
-</body>
-</html>
