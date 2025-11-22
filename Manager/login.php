@@ -1,12 +1,15 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+header('Content-Type: text/html; charset=utf-8');
 
 require_once __DIR__ . '/../includes/session_security.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/rate_limiter.php';
 require_once __DIR__ . '/../includes/anti_detection.php';
 require_once __DIR__ . '/../database/db.php';
+
+/** @var mysqli $conn */
 
 // إخفاء معلومات السيرفر
 AntiDetection::hideServerHeaders();
@@ -67,52 +70,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $user = $res->fetch_assoc();
                         
                         if (password_verify($password, $user['password_hash'])) {
-                            // Login success
-                            $rateLimiter->recordAttempt($email, true);
-                            $rateLimiter->clearAttempts($email);
+                            // 1. تجديد الجلسة (أمان)
+                            session_regenerate_id(true);
                             
-                            // استخدام SessionSecurity للتسجيل الآمن
-                            SessionSecurity::login([
-                                'id' => $user['id'],
-                                'full_name' => $user['full_name'],
-                                'email' => $user['email'],
-                                'role' => $user['role'],
-                                'photo' => $user['photo'] ?? null
-                            ]);
-                            
-                            // تجديد CSRF Token
-                            CSRF::refreshToken();
-                            
-                            $success = true;
-                            
-                            // Redirect to appropriate dashboard based on role
-                            switch ($user['role']) {
-                                case 'manager':
-                                    header('Location: dashboard.php');
-                                    break;
-                                case 'technical':
-                                    header('Location: dashboards/technical-dashboard.php');
-                                    break;
-                                case 'trainer':
-                                    header('Location: dashboards/trainer-dashboard.php');
-                                    break;
-                                case 'student':
-                                    header('Location: ../platform/student-dashboard.php');
-                                    break;
-                                default:
-                                    header('Location: dashboard_router.php');
-                            }
-                            exit;
+                            // 2. حفظ بيانات المستخدم
+                            $_SESSION['user_id'] = $user['id'];
+                            $_SESSION['user_role'] = $user['role'];
+                            $_SESSION['email'] = $user['email'];
+
+                            // 3. التوجيه إلى الراوتر (وليس للصفحة النهائية مباشرة)
+                            header("Location: dashboard_router.php");
+                            exit();
                         } else {
                             // رسالة موحدة
                             $error = AntiDetection::getGenericError('login');
-                            $rateLimiter->recordAttempt($email, false);
+                            $rateLimiter->logAttempt($email, false);
                             AntiDetection::addProgressiveDelay($rateStatus['attempts'] + 1);
                         }
                     } else {
                         // نفس الرسالة الموحدة
                         $error = AntiDetection::getGenericError('login');
-                        $rateLimiter->recordAttempt($email, false);
+                        $rateLimiter->logAttempt($email, false);
                         AntiDetection::addProgressiveDelay($rateStatus['attempts'] + 1);
                     }
                     $stmt->close();
@@ -135,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         body { font-family: 'Cairo', sans-serif; }
     </style>
+    <link rel="stylesheet" href="../platform/css/chatbot.css">
 </head>
 <body class="min-h-screen bg-sky-50 flex items-center justify-center p-6">
     <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
@@ -173,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     name="email" 
                     required
                     value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>"
-                    placeholder="admin_manager@ibdaa.local"
+                    placeholder="أدخل بريدك الإلكتروني"
                     class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition"
                 >
             </div>
@@ -200,31 +179,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
         </form>
 
-        <!-- Quick Test Accounts -->
-        <div class="mt-5 p-3 bg-sky-50 rounded-lg border border-sky-200">
-            <p class="text-xs font-semibold text-slate-700 mb-1.5">🔐 حسابات الاختبار:</p>
-            <div class="space-y-1 text-xs text-slate-600">
-                <div>📧 Email: <code class="bg-white px-1.5 py-0.5 rounded text-xs">admin_manager@ibdaa.local</code></div>
-                <div>🔑 Password: <code class="bg-white px-1.5 py-0.5 rounded text-xs">Test@123</code></div>
-            </div>
-        </div>
-
         <!-- Student Signup Link -->
         <div class="mt-4 text-center text-sm text-slate-600">
             <p>
                 للطلاب: يمكنكم التسجيل عبر 
-                <a href="../platform/signup.php" class="text-sky-600 hover:text-sky-700 font-medium underline">
-                    صفحة التسجيل
+                <a href="../platform/unified_registration.php" class="text-sky-600 hover:text-sky-700 font-medium underline">
+                    بوابة التسجيل الموحد
                 </a>
             </p>
-        </div>        <!-- Quick Links -->
-        <div class="mt-6 flex gap-2 justify-center">
-            <a href="test_login_form.php" class="text-xs text-gray-500 hover:text-sky-600">Test Form</a>
-            <span class="text-gray-300">|</span>
-            <a href="quick_login.php" class="text-xs text-gray-500 hover:text-sky-600">Quick Login</a>
-            <span class="text-gray-300">|</span>
-            <a href="test_rbac.php" class="text-xs text-gray-500 hover:text-sky-600">RBAC Test</a>
         </div>
     </div>
+    <script src="../platform/js/chatbot.js"></script>
 </body>
 </html>

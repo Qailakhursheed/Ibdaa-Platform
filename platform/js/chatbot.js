@@ -3,9 +3,30 @@
  * Advanced conversational UI with typing indicators, quick replies, and smooth animations
  */
 
+const getBaseUrl = () => {
+    const scriptTag = document.querySelector('script[src*="chatbot.js"]');
+    if (scriptTag) {
+        const scriptSrc = scriptTag.src;
+        // e.g. http://localhost/Ibdaa-Taiz/platform/js/chatbot.js
+        const url = new URL(scriptSrc);
+        // pathname is /Ibdaa-Taiz/platform/js/chatbot.js
+        const pathParts = url.pathname.split('/');
+        // Find the project root, assuming it's the parent of 'platform'
+        const platformIndex = pathParts.indexOf('platform');
+        if (platformIndex > -1) {
+            return url.origin + pathParts.slice(0, platformIndex).join('/');
+        }
+        return url.origin;
+    }
+    // Fallback for safety
+    return window.location.origin;
+};
+
 class AIChatbot {
     constructor(options = {}) {
-        this.apiUrl = options.apiUrl || '/platform/api/ai_chatbot.php';
+        this.baseUrl = getBaseUrl();
+        this.apiUrl = `${this.baseUrl}/api/ask_abdullah.php`;
+        this.imageUrl = `${this.baseUrl}/platform/photos/ask_Abdullah.jpg`;
         this.sessionId = localStorage.getItem('chatbot_session_id') || null;
         this.isOpen = false;
         this.isTyping = false;
@@ -42,7 +63,7 @@ class AIChatbot {
                 <div class="ai-chat-header">
                     <div class="ai-chat-header-content">
                         <div class="ai-chat-avatar">
-                            <img src="/platform/photos/Sh.jpg" alt="إبداع" />
+                            <img src="${this.imageUrl}" alt="إبداع" />
                         </div>
                         <div class="ai-chat-info">
                             <h4>اسأل عبدالله 🎓</h4>
@@ -259,7 +280,7 @@ class AIChatbot {
         if (animate) messageDiv.classList.add('ai-message-fade-in');
         
         const avatar = sender === 'bot' ? 
-            '<div class="ai-message-avatar"><img src="/platform/photos/Sh.jpg" alt="Bot" /></div>' : '';
+            `<div class="ai-message-avatar"><img src="${this.imageUrl}" alt="Bot" /></div>` : '';
         
         const timestamp = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         
@@ -298,7 +319,7 @@ class AIChatbot {
         typingDiv.id = 'ai-typing-indicator';
         typingDiv.className = 'ai-chat-message ai-chat-message-bot ai-typing-indicator';
         typingDiv.innerHTML = `
-            <div class="ai-message-avatar"><img src="/platform/photos/Sh.jpg" alt="Bot" /></div>
+            <div class="ai-message-avatar"><img src="${this.imageUrl}" alt="Bot" /></div>
             <div class="ai-message-content">
                 <div class="ai-message-bubble">
                     <div class="ai-typing-dots">
@@ -388,7 +409,5 @@ class AIChatbot {
 
 // Initialize chatbot when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.ibdaaChatbot = new AIChatbot({
-        apiUrl: '/platform/api/ai_chatbot.php'
-    });
+    window.ibdaaChatbot = new AIChatbot();
 });

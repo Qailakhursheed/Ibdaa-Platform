@@ -1,20 +1,39 @@
+<?php
+// Load materials data using StudentHelper
+global $studentHelper;
+$allCourses = $studentHelper->getMyCourses();
+$courseId = $_GET['course_id'] ?? null;
+$materials = [];
+if ($courseId) {
+    $materials = $studentHelper->getCourseMaterials($courseId);
+}
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">المواد الدراسية</h2>
-            <p class="text-slate-600 mt-1">تحميل ومشاهدة المواد التعليمية</p>
+            <p class="text-slate-600 mt-1">تحميل ومشاهدة المواد التعليمية - <?php echo count($materials); ?> مادة</p>
         </div>
     </div>
 
-    <!-- Filter -->
-    <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <!-- Filter - PHP Generated -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-md">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">الدورة</label>
-                <select id="materialCourse" onchange="loadMaterials()" 
-                    class="w-full px-4 py-2 border border-slate-300 rounded-lg">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    <i data-lucide="book-open" class="w-4 h-4 inline mr-1"></i>
+                    الدورة
+                </label>
+                <select id="materialCourse" onchange="window.location.href='?page=materials&course_id='+this.value" 
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg hover:border-amber-500 focus:border-amber-500 transition-all">
                     <option value="">اختر دورة</option>
+                    <?php foreach ($allCourses as $course): ?>
+                        <option value="<?php echo $course['course_id']; ?>" <?php echo $courseId == $course['course_id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($course['course_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <div>
@@ -178,6 +197,17 @@ function searchMaterials() {
     renderMaterials(filtered);
 }
 
-// Initialize
-loadCourses();
+// Initialize with conditional loading
+if (typeof StudentFeatures !== 'undefined') {
+    loadCourses();
+} else {
+    console.log('Waiting for StudentFeatures to load...');
+    setTimeout(() => {
+        if (typeof StudentFeatures !== 'undefined') {
+            loadCourses();
+        } else {
+            console.error('StudentFeatures failed to load');
+        }
+    }, 1000);
+}
 </script>

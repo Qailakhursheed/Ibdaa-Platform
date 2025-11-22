@@ -56,11 +56,23 @@ $pdf->SetAutoPageBreak(false, 0);
 
 $pdf->AddPage();
 
-// Set background color
-$bgColor = $template_data['backgroundColor'];
-list($r, $g, $b) = sscanf($bgColor, "#%02x%02x%02x");
-$pdf->SetFillColor($r, $g, $b);
-$pdf->Rect(0, 0, $pdf->getPageWidth(), $pdf->getPageHeight(), 'F');
+// Set background
+if (!empty($template_data['backgroundImage'])) {
+    $bgImage = __DIR__ . '/../' . $template_data['backgroundImage'];
+    if (file_exists($bgImage)) {
+        // Get page dimensions
+        $w = $pdf->getPageWidth();
+        $h = $pdf->getPageHeight();
+        // Add image covering the full page
+        $pdf->Image($bgImage, 0, 0, $w, $h, '', '', '', false, 300, '', false, false, 0);
+    }
+} else {
+    // Fallback to background color
+    $bgColor = $template_data['backgroundColor'] ?? '#ffffff';
+    list($r, $g, $b) = sscanf($bgColor, "#%02x%02x%02x");
+    $pdf->SetFillColor($r, $g, $b);
+    $pdf->Rect(0, 0, $pdf->getPageWidth(), $pdf->getPageHeight(), 'F');
+}
 
 
 // 4. Add elements to the PDF

@@ -38,12 +38,22 @@ error.log
 *.swp
 *~
 
+# Configuration files (with sensitive data)
+.env
+.env.local
+.env.production
+includes/config.php
+# Mailer/config.php
+
+# Backup files
+*.bak
+*.backup
+
 # Database backups
 *.sql
 *.sql.gz
 *.backup
-
-# Configuration files (with sensitive data)
-# Uncomment if you have config files with passwords
-# config.php
-# Mailer/config.php
+# Allow schema files
+!database/schema.sql
+!database/initial_setup.sql
+!database/migrations/*.sql

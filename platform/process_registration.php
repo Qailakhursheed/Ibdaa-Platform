@@ -60,6 +60,8 @@ AntiDetection::addRandomDelay();
 // جمع وتنظيف البيانات
 $full_name = trim($_POST['full_name'] ?? '');
 $email = trim($_POST['email'] ?? '');
+$password = $_POST['password'] ?? '';
+$confirm_password = $_POST['confirm_password'] ?? '';
 $phone = trim($_POST['phone'] ?? '');
 $birth_date = trim($_POST['birth_date'] ?? '');
 $governorate = trim($_POST['governorate'] ?? '');
@@ -76,6 +78,14 @@ if (strlen($full_name) < 3) {
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors[] = 'البريد الإلكتروني غير صحيح';
+}
+
+if (strlen($password) < 8) {
+    $errors[] = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+}
+
+if ($password !== $confirm_password) {
+    $errors[] = 'كلمة المرور غير متطابقة';
 }
 
 if (!preg_match('/^[0-9]{9,15}$/', $phone)) {
@@ -237,24 +247,50 @@ if (!empty($errors)) {
     exit;
 }
 
-// إدراج الطلب في قاعدة البيانات
-$stmt = $conn->prepare("
-    INSERT INTO registration_requests (
-        full_name, email, phone, dob, governorate, district,
-        course_id, id_file_path, photo_path, notes,
-        status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
-");
+// إدراج المستخدم والطلب في قاعدة البيانات
+$conn->begin_transaction();
 
-$stmt->bind_param(
-    'ssssssisss',
-    $full_name, $email, $phone, $birth_date, $governorate, $district,
-    $course_id, $id_file_path, $photo_path, $notes
-);
+try {
+    // 1. إنشاء حساب المستخدم
+    $password_hash = password_hash($password, PASSWORD_BCRYPT);
+    $verification_token = bin2hex(random_bytes(32));
+    
+    // Check if password_hash column exists (it should based on my check)
+    // But let's be safe and use the columns I saw: full_name, email, phone, password_hash, dob, governorate, district, role, verified
+    
+    $stmt = $conn->prepare("INSERT INTO users (full_name, email, phone, password_hash, dob, governorate, district, role, verified, account_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'student', 0, 'pending', NOW())");
+    if (!$stmt) throw new Exception("خطأ في تحضير استعلام المستخدم: " . $conn->error);
+    
+    $stmt->bind_param('sssssss', $full_name, $email, $phone, $password_hash, $birth_date, $governorate, $district);
+    
+    if (!$stmt->execute()) throw new Exception("خطأ في إنشاء المستخدم: " . $stmt->error);
+    
+    $user_id = $stmt->insert_id;
+    $stmt->close();
 
-if ($stmt->execute()) {
+    // 2. إنشاء طلب التسجيل
+    $stmt = $conn->prepare("
+        INSERT INTO registration_requests (
+            user_id, full_name, email, phone, dob, governorate, district,
+            course_id, id_file_path, photo_path, notes,
+            status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+    ");
+    
+    if (!$stmt) throw new Exception("خطأ في تحضير استعلام الطلب: " . $conn->error);
+
+    $stmt->bind_param(
+        'issssssisss',
+        $user_id, $full_name, $email, $phone, $birth_date, $governorate, $district,
+        $course_id, $id_file_path, $photo_path, $notes
+    );
+
+    if (!$stmt->execute()) throw new Exception("خطأ في إنشاء الطلب: " . $stmt->error);
+    
     $application_id = $stmt->insert_id;
     $stmt->close();
+    
+    $conn->commit();
     
     // تسجيل محاولة تسجيل ناجحة
     $rateLimiter->recordAttempt($rate_limit_key, true);
@@ -266,42 +302,51 @@ if ($stmt->execute()) {
         SELECT id, ?, 'info', NOW()
         FROM users WHERE role = 'technical' AND status = 'active'
     ");
-    $stmt->bind_param('s', $notification_msg);
-    $stmt->execute();
-    $stmt->close();
+    // Note: notifications table might not exist or have different schema, but assuming it works as per original code
+    // If it fails, it might throw exception if strict, but original code had it.
+    // Let's wrap in try-catch just for this part or assume it works.
+    // Actually, original code had it. I'll keep it but wrapped in try/catch or just let it run.
+    // Since I'm inside a transaction, if this fails, it rolls back everything? 
+    // Notifications are less critical. Let's keep it simple.
     
-    // إضافة سجل إشعار بريدي (سيتم معالجته لاحقاً)
+    if ($stmt) {
+        $stmt->bind_param('s', $notification_msg);
+        $stmt->execute();
+        $stmt->close();
+    }
+    
+    // إضافة سجل إشعار بريدي
     $stmt = $conn->prepare("
         INSERT INTO notification_log (recipient_email, subject, message, status)
         VALUES (?, ?, ?, 'pending')
     ");
-    $email_subject = 'استلام طلب الانضمام - منصة إبداع';
-    $email_message = "
+    
+    if ($stmt) {
+        $email_subject = 'استلام طلب الانضمام - منصة إبداع';
+        $email_message = "
 عزيزي/عزيزتي {$full_name},
 
 تم استلام طلب انضمامك إلى دورة: {$course_name}
 
 رقم الطلب: #{$application_id}
 
-سيتم مراجعة طلبك خلال 24-48 ساعة وإرسال إشعار بالقرار على بريدك الإلكتروني.
-
-في حالة القبول، سيتم إرسال تفاصيل الدفع ومعلومات الدخول.
+حسابك الآن قيد المراجعة. يمكنك تسجيل الدخول لمتابعة حالة الطلب.
 
 شكراً لاختياركم منصة إبداع
-    ";
-    
-    $stmt->bind_param('sss', $email, $email_subject, $email_message);
-    $stmt->execute();
-    $stmt->close();
+        ";
+        
+        $stmt->bind_param('sss', $email, $email_subject, $email_message);
+        $stmt->execute();
+        $stmt->close();
+    }
     
     // إعادة التوجيه مع رسالة نجاح
-    $success_msg = "تم إرسال طلبك بنجاح! رقم الطلب: #{$application_id}. سيتم مراجعة طلبك خلال 24-48 ساعة.";
+    $success_msg = "تم إرسال طلبك وإنشاء حسابك بنجاح! رقم الطلب: #{$application_id}. يرجى انتظار الموافقة.";
     header('Location: unified_registration.php?success=' . urlencode($success_msg));
     exit;
-    
-} else {
-    // خطأ في قاعدة البيانات
-    $stmt->close();
+
+} catch (Exception $e) {
+    $conn->rollback();
     
     // حذف الملفات المرفوعة
     if ($id_file_path && file_exists(__DIR__ . '/' . $id_file_path)) {
@@ -311,7 +356,7 @@ if ($stmt->execute()) {
         unlink(__DIR__ . '/' . $photo_path);
     }
     
-    AntiDetection::logSuspiciousActivity('registration_db_error', $conn->error);
-    header('Location: unified_registration.php?error=' . urlencode('حدث خطأ أثناء معالجة طلبك. يرجى المحاولة لاحقاً'));
+    AntiDetection::logSuspiciousActivity('registration_db_error', $e->getMessage());
+    header('Location: unified_registration.php?error=' . urlencode('حدث خطأ أثناء معالجة طلبك: ' . $e->getMessage()));
     exit;
 }

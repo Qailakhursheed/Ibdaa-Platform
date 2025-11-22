@@ -26,20 +26,21 @@ class EmailSender {
         $this->conn = $db_connection;
         $this->mailer = new PHPMailer(true);
         
-        // Load config
+        // Load config from config.php (which uses .env)
         $configFile = __DIR__ . '/config.php';
         if (file_exists($configFile)) {
             $this->config = require $configFile;
         } else {
-            // Fallback defaults
+            // Fallback to environment variables directly
+            require_once __DIR__ . '/env_loader.php';
             $this->config = [
                 'smtp' => [
-                    'host' => 'smtp.gmail.com',
-                    'port' => 587,
-                    'username' => 'ha717781053@gmail.com',
-                    'password' => '',
-                    'from_email' => 'ha717781053@gmail.com',
-                    'from_name' => 'منصة إبداع للتدريب والتأهيل'
+                    'host' => EnvLoader::get('SMTP_HOST', 'smtp.gmail.com'),
+                    'port' => EnvLoader::get('SMTP_PORT', 587),
+                    'username' => EnvLoader::get('SMTP_USER', ''),
+                    'password' => EnvLoader::get('SMTP_PASS', ''),
+                    'from_email' => EnvLoader::get('SMTP_FROM_EMAIL', ''),
+                    'from_name' => EnvLoader::get('SMTP_FROM_NAME', 'منصة إبداع للتدريب والتأهيل')
                 ]
             ];
         }

@@ -26,7 +26,7 @@ if (isset($_SESSION['user_id'])) {
     echo "</div>";
     
     echo "<div class='flex gap-3'>";
-    echo "<a href='dashboard.php' class='bg-sky-500 hover:bg-sky-600 text-white px-6 py-2 rounded-lg font-semibold transition'>الذهاب إلى Dashboard</a>";
+    echo "<a href='dashboard_router.php' class='bg-sky-500 hover:bg-sky-600 text-white px-6 py-2 rounded-lg font-semibold transition'>الذهاب إلى Dashboard</a>";
     echo "<a href='logout.php' class='bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-semibold transition'>تسجيل الخروج</a>";
     echo "</div>";
     

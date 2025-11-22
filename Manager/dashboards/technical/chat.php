@@ -64,7 +64,7 @@ async function loadConversations() {
                 <div onclick="openConversation(${conv.contact_id}, '${conv.contact_name}')"
                     class="p-4 border-b border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
                     <div class="flex items-center gap-3">
-                        <img src="${conv.contact_photo || '../platform/photos/default-avatar.png'}" 
+                        <img src="${conv.contact_photo || '<?php echo $platformBaseUrl; ?>/photos/default-avatar.png'}" 
                              class="w-12 h-12 rounded-full object-cover">
                         <div class="flex-1">
                             <h4 class="font-semibold text-slate-800">${conv.contact_name}</h4>

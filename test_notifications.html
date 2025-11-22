@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نظام الإشعارات الفورية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .log-entry { margin: 4px 0; padding: 8px; border-radius: 4px; font-size: 14px; font-family: 'Courier New', monospace; }
+        .log-info { background-color: #dbeafe; color: #1e40af; }
+        .log-success { background-color: #d1fae5; color: #065f46; }
+        .log-error { background-color: #fee2e2; color: #991b1b; }
+        .log-warning { background-color: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+<div class="container mx-auto p-8 max-w-6xl">
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <div class="flex items-center gap-3 mb-6">
+            <i data-lucide="activity" class="w-8 h-8 text-blue-600"></i>
+            <h1 class="text-3xl font-bold text-slate-800">اختبار نظام الإشعارات الفورية</h1>
+        </div>
+
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <!-- WebSocket Status -->
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">حالة WebSocket</span>
+                    <span id="wsStatus" class="px-3 py-1 rounded-full text-sm bg-gray-200 text-gray-700">
+                        غير متصل
+                    </span>
+                </div>
+            </div>
+
+            <!-- Notifications Count -->
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">عدد الإشعارات</span>
+                    <span id="notifCount" class="text-2xl font-bold text-blue-600">0</span>
+                </div>
+            </div>
+
+            <!-- Server Time -->
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">وقت الاتصال</span>
+                    <span id="serverTime" class="text-sm text-slate-700">--:--:--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Connection Controls -->
+            <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                <h3 class="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="wifi" class="w-5 h-5"></i>
+                    التحكم في الاتصال
+                </h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">معرف المستخدم</label>
+                        <input type="number" id="testUserId" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="connectWS()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
+                            اتصال
+                        </button>
+                        <button onclick="disconnectWS()" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
+                            قطع الاتصال
+                        </button>
+                    </div>
+                    
+                    <button onclick="sendPing()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+                        إرسال Ping
+                    </button>
+                </div>
+            </div>
+
+            <!-- Test Notifications -->
+            <div class="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                <h3 class="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    اختبار الإشعارات
+                </h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">رسالة الإشعار</label>
+                        <input type="text" id="testMessage" value="هذا إشعار تجريبي" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">الأولوية</label>
+                        <select id="testPriority" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                            <option value="low">منخفضة</option>
+                            <option value="normal" selected>عادية</option>
+                            <option value="high">عالية</option>
+                            <option value="urgent">عاجلة</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="sendTestNotification()" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium">
+                        إرسال إشعار تجريبي
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Received Notifications -->
+        <div class="bg-green-50 p-6 rounded-lg border border-green-200 mb-6">
+            <h3 class="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
+                <i data-lucide="inbox" class="w-5 h-5"></i>
+                الإشعارات المستلمة
+            </h3>
+            <div id="notificationsList" class="space-y-2 max-h-60 overflow-y-auto">
+                <p class="text-slate-500 text-center py-8">لا توجد إشعارات حتى الآن</p>
+            </div>
+        </div>
+
+        <!-- Console Log -->
+        <div class="bg-slate-900 p-6 rounded-lg">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                    سجل الأحداث (Console)
+                </h3>
+                <button onclick="clearLog()" class="text-sm text-slate-400 hover:text-white">
+                    مسح السجل
+                </button>
+            </div>
+            <div id="consoleLog" class="bg-black rounded p-4 h-80 overflow-y-auto font-mono text-sm">
+                <div class="log-entry log-info">[INFO] جاهز للاختبار...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    
+    let ws = null;
+    let notificationCount = 0;
+    
+    function log(message, type = 'info') {
+        const logDiv = document.getElementById('consoleLog');
+        const entry = document.createElement('div');
+        entry.className = `log-entry log-${type}`;
+        
+        const timestamp = new Date().toLocaleTimeString('ar-EG');
+        entry.textContent = `[${timestamp}] ${message}`;
+        
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function updateStatus(connected) {
+        const statusEl = document.getElementById('wsStatus');
+        if (connected) {
+            statusEl.textContent = 'متصل';
+            statusEl.className = 'px-3 py-1 rounded-full text-sm bg-green-100 text-green-700';
+        } else {
+            statusEl.textContent = 'غير متصل';
+            statusEl.className = 'px-3 py-1 rounded-full text-sm bg-gray-200 text-gray-700';
+        }
+    }
+    
+    function connectWS() {
+        const userId = document.getElementById('testUserId').value;
+        
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            log('⚠️ الاتصال موجود بالفعل', 'warning');
+            return;
+        }
+        
+        const wsUrl = `ws://localhost:8080?user_id=${userId}`;
+        log(`🔌 جاري الاتصال بـ: ${wsUrl}`, 'info');
+        
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = (event) => {
+            log('✅ تم الاتصال بنجاح', 'success');
+            updateStatus(true);
+            document.getElementById('serverTime').textContent = new Date().toLocaleTimeString('ar-EG');
+        };
+        
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                log(`📩 رسالة واردة: ${data.type}`, 'info');
+                
+                if (data.type === 'notification') {
+                    addNotification(data.data);
+                }
+                
+                log(`📄 التفاصيل: ${JSON.stringify(data, null, 2)}`, 'info');
+            } catch (error) {
+                log(`❌ خطأ في تحليل الرسالة: ${error.message}`, 'error');
+            }
+        };
+        
+        ws.onclose = (event) => {
+            log(`❌ تم قطع الاتصال (Code: ${event.code})`, 'error');
+            updateStatus(false);
+        };
+        
+        ws.onerror = (event) => {
+            log('❌ خطأ في الاتصال. تأكد من تشغيل خادم WebSocket', 'error');
+        };
+    }
+    
+    function disconnectWS() {
+        if (ws) {
+            log('🔌 جاري قطع الاتصال...', 'info');
+            ws.close();
+            ws = null;
+            updateStatus(false);
+        } else {
+            log('⚠️ لا يوجد اتصال نشط', 'warning');
+        }
+    }
+    
+    function sendPing() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            log('❌ الاتصال غير نشط', 'error');
+            return;
+        }
+        
+        const message = { type: 'ping' };
+        ws.send(JSON.stringify(message));
+        log('📤 تم إرسال Ping', 'info');
+    }
+    
+    async function sendTestNotification() {
+        const userId = document.getElementById('testUserId').value;
+        const message = document.getElementById('testMessage').value;
+        const priority = document.getElementById('testPriority').value;
+        
+        log('📤 جاري إرسال إشعار تجريبي عبر API...', 'info');
+        
+        try {
+            const response = await fetch('Manager/api/notifications_realtime.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'send',
+                    user_id: parseInt(userId),
+                    message: message,
+                    type: 'system',
+                    priority: priority,
+                    icon: 'bell',
+                    color: 'blue',
+                    send_email: false,
+                    send_whatsapp: false
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                log(`✅ تم إرسال الإشعار بنجاح (ID: ${data.id})`, 'success');
+            } else {
+                log(`❌ فشل الإرسال: ${data.message}`, 'error');
+            }
+        } catch (error) {
+            log(`❌ خطأ: ${error.message}`, 'error');
+        }
+    }
+    
+    function addNotification(notification) {
+        notificationCount++;
+        document.getElementById('notifCount').textContent = notificationCount;
+        
+        const listDiv = document.getElementById('notificationsList');
+        
+        // Remove empty message
+        if (notificationCount === 1) {
+            listDiv.innerHTML = '';
+        }
+        
+        const notifEl = document.createElement('div');
+        notifEl.className = 'bg-white p-4 rounded-lg border border-green-300 shadow-sm';
+        notifEl.innerHTML = `
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0">
+                    <i data-lucide="${notification.icon || 'bell'}" class="w-5 h-5 text-${notification.color || 'blue'}-600"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="font-medium text-slate-800">${notification.message}</p>
+                    <p class="text-xs text-slate-500 mt-1">${new Date(notification.created_at).toLocaleString('ar-EG')}</p>
+                </div>
+            </div>
+        `;
+        
+        listDiv.insertBefore(notifEl, listDiv.firstChild);
+        lucide.createIcons();
+    }
+    
+    function clearLog() {
+        document.getElementById('consoleLog').innerHTML = '<div class="log-entry log-info">[INFO] تم مسح السجل</div>';
+    }
+    
+    // Auto-connect on load
+    window.addEventListener('load', () => {
+        log('🚀 تم تحميل الصفحة. جاهز للاختبار!', 'success');
+    });
+</script>
+
+</body>
+</html>

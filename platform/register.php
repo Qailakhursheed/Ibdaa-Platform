@@ -251,7 +251,7 @@ if ($stmt->execute()) {
         ]);
         exit;
     }
-    header("Location: login.php?success=" . urlencode("تم إنشاء الحساب بنجاح! تحقق من بريدك الإلكتروني لتفعيل الحساب."));
+    header("Location: signup.php?success=" . urlencode("تم إنشاء الحساب بنجاح! تحقق من بريدك الإلكتروني لتفعيل الحساب."));
     exit;
 } else {
     if ($isAjax) {

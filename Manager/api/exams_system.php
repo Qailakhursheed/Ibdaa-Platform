@@ -1,11 +1,15 @@
 <?php
 /**
- * 📝 Advanced Exams System with Anti-Cheating
- * Complete exam management with role-based access control
- * Features: Create, Edit, Publish, Monitor, Grade, Anti-Cheat
+ * exams_system - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 header('Content-Type: application/json; charset=utf-8');
 
 ini_set('display_errors', 1);

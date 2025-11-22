@@ -1,16 +1,15 @@
 <?php
 /**
- * Students Management API
- * نظام إدارة الطلاب (المتدربين) - API
- * 
- * التكامل الكامل بين جميع الأدوار:
- * - المدير العام (manager): صلاحيات كاملة
- * - المشرف الفني (technical): صلاحيات كاملة ماعدا الحذف النهائي
- * - المدرب (trainer): عرض طلابه فقط
- * - الطالب (student): عرض وتعديل بياناته فقط
+ * students - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 require_once __DIR__ . '/../includes/db_connect.php';
 
 header('Content-Type: application/json; charset=utf-8');

@@ -16,22 +16,25 @@ try {
     // Pending Requests
     $stmt = $conn->prepare("SELECT COUNT(*) as total FROM registration_requests WHERE status = 'pending'");
     $stmt->execute();
-    $requestsStats['pending'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $result = $stmt->get_result()->fetch_assoc();
+    $requestsStats['pending'] = $result['total'] ?? 0;
     
     // Approved Requests
     $stmt = $conn->prepare("SELECT COUNT(*) as total FROM registration_requests WHERE status = 'approved'");
     $stmt->execute();
-    $requestsStats['approved'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $result = $stmt->get_result()->fetch_assoc();
+    $requestsStats['approved'] = $result['total'] ?? 0;
     
     // Rejected Requests
     $stmt = $conn->prepare("SELECT COUNT(*) as total FROM registration_requests WHERE status = 'rejected'");
     $stmt->execute();
-    $requestsStats['rejected'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $result = $stmt->get_result()->fetch_assoc();
+    $requestsStats['rejected'] = $result['total'] ?? 0;
     
     // Total Requests
     $requestsStats['total'] = $requestsStats['pending'] + $requestsStats['approved'] + $requestsStats['rejected'];
     
-} catch(PDOException $e) {
+} catch(Exception $e) {
     error_log("Requests Stats Error: " . $e->getMessage());
 }
 ?>
@@ -124,7 +127,9 @@ try {
         <i data-lucide="trending-up" class="w-5 h-5 text-purple-600"></i>
         إحصائيات الطلبات الشهرية
     </h3>
-    <canvas id="requestsChart" height="100"></canvas>
+    <div style="height: 300px; position: relative;">
+        <canvas id="requestsChart"></canvas>
+    </div>
 </div>
 
 <!-- Requests Table -->
@@ -339,7 +344,7 @@ function initializeRequestsChart() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: {
                         position: 'top',
@@ -363,7 +368,7 @@ function initializeRequestsChart() {
 // Load Requests
 async function loadRequests(status = 'all', courseId = 'all', searchTerm = '') {
     try {
-        let url = '../../api/requests.php?action=get_all';
+        let url = '<?php echo $managerBaseUrl; ?>/api/requests.php?action=get_all';
         if (status !== 'all') url += `&status=${status}`;
         if (courseId !== 'all') url += `&course_id=${courseId}`;
         if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
@@ -472,7 +477,7 @@ function refreshRequests() {
 // View Request Details
 async function viewRequestDetails(requestId) {
     try {
-        const response = await fetch(`../../api/requests.php?action=get_details&request_id=${requestId}`);
+        const response = await fetch(`<?php echo $managerBaseUrl; ?>/api/requests.php?action=get_details&request_id=${requestId}`);
         const data = await response.json();
         
         if (data.success && data.data) {
@@ -608,7 +613,7 @@ document.getElementById('approveRequestForm')?.addEventListener('submit', async 
     formData.append('action', 'approve_request');
     
     try {
-        const response = await fetch('../../api/requests.php', {
+        const response = await fetch('<?php echo $managerBaseUrl; ?>/api/requests.php', {
             method: 'POST',
             body: formData
         });
@@ -635,7 +640,7 @@ document.getElementById('rejectRequestForm')?.addEventListener('submit', async f
     formData.append('action', 'reject_request');
     
     try {
-        const response = await fetch('../../api/requests.php', {
+        const response = await fetch('<?php echo $managerBaseUrl; ?>/api/requests.php', {
             method: 'POST',
             body: formData
         });
@@ -658,7 +663,7 @@ document.getElementById('rejectRequestForm')?.addEventListener('submit', async f
 // Load Courses for Filter
 async function loadCoursesFilter() {
     try {
-        const response = await fetch('../../api/courses.php?action=get_all');
+        const response = await fetch('<?php echo $managerBaseUrl; ?>/api/courses.php?action=get_all');
         const data = await response.json();
         
         const select = document.getElementById('filterCourse');
@@ -678,7 +683,7 @@ async function loadCoursesFilter() {
 // Load Trainers for Approve Modal
 async function loadTrainersForApprove() {
     try {
-        const response = await fetch('../../api/trainers.php?action=get_all');
+        const response = await fetch('<?php echo $managerBaseUrl; ?>/api/trainers.php?action=get_all');
         const data = await response.json();
         
         const select = document.querySelector('#approveRequestForm select[name="trainer_id"]');
@@ -728,7 +733,7 @@ function getStatusClass(status) {
 async function sendEmailToStudent(requestId) {
     if (confirm('هل تريد إرسال بريد إلكتروني للطالب؟')) {
         try {
-            const response = await fetch('../../api/requests.php', {
+            const response = await fetch('<?php echo $managerBaseUrl; ?>/api/requests.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: `action=send_email&request_id=${requestId}`

@@ -1,16 +1,14 @@
 <?php
 /**
- * نظام المراسلة - Messaging System
- * Get Messages API
- * 
- * جلب رسائل محادثة محددة (فردية أو جماعية)
- * مع تحديث حالة القراءة تلقائياً
+ * get_messages - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../database/db.php';
 

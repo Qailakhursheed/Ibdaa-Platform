@@ -40,9 +40,20 @@ try {
             $offset = (int)($_GET['offset'] ?? 0);
             $type_filter = $_GET['type'] ?? '';
             
+            // التحقق من وجود جدول notifications
+            $table_check = $conn->query("SHOW TABLES LIKE 'notifications'");
+            if ($table_check->num_rows === 0) {
+                respond([
+                    'success' => true,
+                    'notifications' => [],
+                    'total' => 0,
+                    'message' => 'جدول الإشعارات غير موجود بعد'
+                ]);
+            }
+            
             $sql = "
                 SELECT 
-                    notification_id,
+                    id as notification_id,
                     user_id,
                     title,
                     message,

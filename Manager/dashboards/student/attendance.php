@@ -1,229 +1,251 @@
+<?php
+// Load attendance data using StudentHelper
+global $studentHelper;
+$allCourses = $studentHelper->getMyCourses();
+$allAttendance = $studentHelper->getMyAttendance(); // Get all attendance records
+
+// Calculate statistics
+$presentCount = count(array_filter($allAttendance, fn($a) => $a['status'] === 'present'));
+$absentCount = count(array_filter($allAttendance, fn($a) => $a['status'] === 'absent'));
+$lateCount = count(array_filter($allAttendance, fn($a) => $a['status'] === 'late'));
+$totalRecords = count($allAttendance);
+$attendanceRate = $totalRecords > 0 ? ($presentCount / $totalRecords) * 100 : 0;
+$warningCount = floor($absentCount / 3); // Warning every 3 absences
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">سجل الحضور</h2>
-            <p class="text-slate-600 mt-1">متابعة حضورك وغيابك في جميع الدورات</p>
+            <p class="text-slate-600 mt-1">متابعة حضورك وغيابك - <?php echo $totalRecords; ?> سجل إجمالاً</p>
         </div>
     </div>
 
-    <!-- Attendance Summary -->
+    <!-- Attendance Summary - PHP Data -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl p-6 shadow-xl">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="calendar-check" class="w-8 h-8 text-emerald-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="totalPresent">0</span>
+                <i data-lucide="calendar-check" class="w-10 h-10"></i>
+                <span class="text-5xl font-bold"><?php echo $presentCount; ?></span>
             </div>
-            <p class="text-sm text-slate-600">أيام حضور</p>
+            <p class="text-sm font-semibold opacity-90">أيام حضور</p>
+            <p class="text-xs opacity-75 mt-1"><?php echo $lateCount; ?> تأخير</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="calendar-x" class="w-8 h-8 text-red-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="totalAbsent">0</span>
+                <i data-lucide="calendar-x" class="w-10 h-10 text-red-600"></i>
+                <span class="text-5xl font-bold text-slate-800"><?php echo $absentCount; ?></span>
             </div>
-            <p class="text-sm text-slate-600">أيام غياب</p>
+            <p class="text-sm text-slate-600 font-semibold">أيام غياب</p>
+            <p class="text-xs text-slate-500 mt-1">من <?php echo $totalRecords; ?> سجل</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="percent" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="attendanceRate">0%</span>
+                <i data-lucide="percent" class="w-10 h-10 text-amber-600"></i>
+                <span class="text-5xl font-bold text-slate-800"><?php echo round($attendanceRate); ?>%</span>
             </div>
-            <p class="text-sm text-slate-600">نسبة الحضور</p>
+            <p class="text-sm text-slate-600 font-semibold">نسبة الحضور</p>
+            <p class="text-xs text-slate-500 mt-1">
+                <?php echo $attendanceRate >= 75 ? '✓ ممتاز' : ($attendanceRate >= 50 ? '⚠ جيد' : '✗ ضعيف'); ?>
+            </p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg <?php echo $warningCount > 0 ? 'border-red-300' : ''; ?>">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="alert-triangle" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="warningCount">0</span>
+                <i data-lucide="alert-triangle" class="w-10 h-10 <?php echo $warningCount > 0 ? 'text-red-600' : 'text-amber-600'; ?>"></i>
+                <span class="text-5xl font-bold text-slate-800"><?php echo $warningCount; ?></span>
             </div>
-            <p class="text-sm text-slate-600">إنذارات</p>
+            <p class="text-sm text-slate-600 font-semibold">إنذارات</p>
+            <p class="text-xs text-slate-500 mt-1"><?php echo $warningCount > 0 ? 'تحذير: غياب متكرر!' : 'لا توجد إنذارات'; ?></p>
         </div>
     </div>
 
-    <!-- Course Filter -->
-    <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <!-- Course Filter - PHP Generated -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-md">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">اختر الدورة</label>
-                <select id="attendanceCourse" onchange="loadAttendance()" 
-                    class="w-full px-4 py-2 border border-slate-300 rounded-lg">
-                    <option value="all">جميع الدورات</option>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    <i data-lucide="filter" class="w-4 h-4 inline mr-1"></i>
+                    اختر الدورة
+                </label>
+                <select id="attendanceCourse" onchange="filterAttendance()" 
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg hover:border-amber-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all">
+                    <option value="all">جميع الدورات (<?php echo count($allCourses); ?>)</option>
+                    <?php foreach ($allCourses as $course): ?>
+                        <option value="<?php echo $course['course_id']; ?>">
+                            <?php echo htmlspecialchars($course['course_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">الفترة</label>
-                <select id="attendancePeriod" onchange="loadAttendance()" 
-                    class="w-full px-4 py-2 border border-slate-300 rounded-lg">
-                    <option value="all">جميع الفترات</option>
-                    <option value="month">هذا الشهر</option>
-                    <option value="week">هذا الأسبوع</option>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    <i data-lucide="calendar" class="w-4 h-4 inline mr-1"></i>
+                    الحالة
+                </label>
+                <select id="attendanceStatus" onchange="filterAttendance()" 
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg hover:border-amber-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all">
+                    <option value="all">جميع الحالات</option>
+                    <option value="present">حضور (<?php echo $presentCount; ?>)</option>
+                    <option value="absent">غياب (<?php echo $absentCount; ?>)</option>
+                    <option value="late">تأخير (<?php echo $lateCount; ?>)</option>
                 </select>
             </div>
         </div>
     </div>
 
-    <!-- Attendance Records -->
-    <div class="bg-white border border-slate-200 rounded-xl">
+    <!-- Attendance Records - PHP Rendered -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-md">
         <div class="p-6 border-b border-slate-200">
-            <h3 class="text-lg font-bold text-slate-800">سجل الحضور التفصيلي</h3>
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="list" class="w-5 h-5 text-amber-600"></i>
+                سجل الحضور التفصيلي
+            </h3>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-slate-50 border-b border-slate-200">
+                <thead class="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-300">
                     <tr>
-                        <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">التاريخ</th>
-                        <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">الدورة</th>
-                        <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">الحالة</th>
-                        <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">الملاحظات</th>
+                        <th class="px-6 py-4 text-right text-sm font-bold text-slate-700">التاريخ</th>
+                        <th class="px-6 py-4 text-right text-sm font-bold text-slate-700">الدورة</th>
+                        <th class="px-6 py-4 text-center text-sm font-bold text-slate-700">الحالة</th>
+                        <th class="px-6 py-4 text-right text-sm font-bold text-slate-700">الملاحظات</th>
                     </tr>
                 </thead>
                 <tbody id="attendanceTable">
-                    <tr>
-                        <td colspan="4" class="px-6 py-12 text-center">
-                            <i data-lucide="loader" class="w-8 h-8 mx-auto animate-spin text-slate-400 mb-3"></i>
-                            <p class="text-slate-500">جاري التحميل...</p>
-                        </td>
-                    </tr>
+                    <?php if (empty($allAttendance)): ?>
+                        <tr>
+                            <td colspan="4" class="px-6 py-16 text-center">
+                                <i data-lucide="calendar-x" class="w-12 h-12 mx-auto text-slate-400 mb-3"></i>
+                                <p class="text-slate-600 font-semibold">لا توجد سجلات حضور بعد</p>
+                                <p class="text-slate-500 text-sm mt-2">سيظهر سجل حضورك هنا عند بدء الدورات</p>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php 
+                        // Map course IDs to names
+                        $courseMap = [];
+                        foreach ($allCourses as $course) {
+                            $courseMap[$course['course_id']] = $course['course_name'];
+                        }
+                        
+                        // Sort by date descending
+                        usort($allAttendance, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+                        
+                        foreach ($allAttendance as $record): 
+                            $courseName = $courseMap[$record['course_id']] ?? 'دورة غير معروفة';
+                            $status = $record['status'];
+                            
+                            // Status styling
+                            if ($status === 'present') {
+                                $statusLabel = 'حضور';
+                                $statusIcon = '✓';
+                                $statusColor = 'emerald';
+                            } elseif ($status === 'absent') {
+                                $statusLabel = 'غياب';
+                                $statusIcon = '✗';
+                                $statusColor = 'red';
+                            } elseif ($status === 'late') {
+                                $statusLabel = 'تأخير';
+                                $statusIcon = '⏰';
+                                $statusColor = 'amber';
+                            } else {
+                                $statusLabel = 'غير محدد';
+                                $statusIcon = '?';
+                                $statusColor = 'slate';
+                            }
+                            
+                            $formattedDate = date('Y-m-d', strtotime($record['date']));
+                            $dayName = date('l', strtotime($record['date']));
+                            $dayNameAr = [
+                                'Monday' => 'الاثنين',
+                                'Tuesday' => 'الثلاثاء',
+                                'Wednesday' => 'الأربعاء',
+                                'Thursday' => 'الخميس',
+                                'Friday' => 'الجمعة',
+                                'Saturday' => 'السبت',
+                                'Sunday' => 'الأحد'
+                            ][$dayName] ?? $dayName;
+                        ?>
+                            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors attendance-row" 
+                                data-course-id="<?php echo $record['course_id']; ?>"
+                                data-status="<?php echo $status; ?>">
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-slate-800"><?php echo $formattedDate; ?></span>
+                                        <span class="text-xs text-slate-500 mt-1"><?php echo $dayNameAr; ?></span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="font-medium text-slate-700"><?php echo htmlspecialchars($courseName); ?></span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-4 py-1.5 rounded-full text-xs font-bold bg-<?php echo $statusColor; ?>-100 text-<?php echo $statusColor; ?>-700 inline-block">
+                                        <?php echo $statusIcon; ?> <?php echo $statusLabel; ?>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-sm text-slate-600"><?php echo htmlspecialchars($record['notes'] ?? '-'); ?></span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Attendance Chart -->
-    <div class="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 class="text-lg font-bold text-slate-800 mb-4">الحضور خلال الشهر</h3>
-        <canvas id="attendanceChart" height="80"></canvas>
+    <!-- Attendance Rate Chart - Python API -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-md">
+        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="bar-chart-2" class="w-5 h-5 text-amber-600"></i>
+            معدل الحضور حسب الدورات
+        </h3>
+        <div id="attendanceRateChart" style="height: 400px; position: relative;"></div>
     </div>
 </div>
 
+<!-- Plotly.js for interactive charts -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="<?php echo $managerBaseUrl; ?>/assets/js/chart-loader.js"></script>
+
 <script>
-async function loadCourses() {
-    const response = await StudentFeatures.courses.getMyCourses();
-    if (response.success && response.data) {
-        const select = document.getElementById('attendanceCourse');
-        response.data.forEach(course => {
-            const option = document.createElement('option');
-            option.value = course.id;
-            option.textContent = course.course_name;
-            select.appendChild(option);
-        });
-    }
-}
-
-async function loadAttendance() {
+// Simple filtering function using CSS
+function filterAttendance() {
     const courseId = document.getElementById('attendanceCourse').value;
-    const response = await StudentFeatures.attendance.getMyAttendance(
-        courseId === 'all' ? null : courseId
-    );
+    const status = document.getElementById('attendanceStatus').value;
+    const rows = document.querySelectorAll('.attendance-row');
     
-    if (response.success && response.data) {
-        const attendance = response.data.records || [];
+    rows.forEach(row => {
+        const rowCourseId = row.dataset.courseId;
+        const rowStatus = row.dataset.status;
         
-        // Update statistics
-        const present = attendance.filter(a => a.status === 'present').length;
-        const absent = attendance.filter(a => a.status === 'absent').length;
-        const total = present + absent;
-        const rate = total > 0 ? ((present / total) * 100).toFixed(0) : 0;
+        let showRow = true;
         
-        document.getElementById('totalPresent').textContent = present;
-        document.getElementById('totalAbsent').textContent = absent;
-        document.getElementById('attendanceRate').textContent = rate + '%';
-        document.getElementById('warningCount').textContent = absent >= 3 ? Math.floor(absent / 3) : 0;
-        
-        renderAttendance(attendance);
-    }
-    
-    lucide.createIcons();
-}
-
-function renderAttendance(records) {
-    const tbody = document.getElementById('attendanceTable');
-    
-    if (records.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="4" class="px-6 py-12 text-center">
-                    <i data-lucide="calendar-x" class="w-8 h-8 mx-auto text-slate-400 mb-3"></i>
-                    <p class="text-slate-600">لا يوجد سجل حضور</p>
-                </td>
-            </tr>
-        `;
-        lucide.createIcons();
-        return;
-    }
-    
-    tbody.innerHTML = records.map(record => `
-        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-            <td class="px-6 py-4">
-                <span class="text-sm font-semibold text-slate-800">${record.date}</span>
-            </td>
-            <td class="px-6 py-4">
-                <span class="text-sm text-slate-700">${record.course_name}</span>
-            </td>
-            <td class="px-6 py-4">
-                <span class="px-3 py-1 text-xs font-semibold rounded-full ${
-                    record.status === 'present' ? 'bg-emerald-100 text-emerald-700' :
-                    record.status === 'absent' ? 'bg-red-100 text-red-700' :
-                    'bg-amber-100 text-amber-700'
-                }">
-                    <i data-lucide="${
-                        record.status === 'present' ? 'check-circle' :
-                        record.status === 'absent' ? 'x-circle' :
-                        'alert-circle'
-                    }" class="w-3 h-3 inline"></i>
-                    ${record.status === 'present' ? 'حاضر' : record.status === 'absent' ? 'غائب' : 'عذر'}
-                </span>
-            </td>
-            <td class="px-6 py-4">
-                <span class="text-sm text-slate-600">${record.notes || '-'}</span>
-            </td>
-        </tr>
-    `).join('');
-    
-    lucide.createIcons();
-}
-
-// Create Attendance Chart
-function createAttendanceChart() {
-    const ctx = document.getElementById('attendanceChart');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['الأسبوع 1', 'الأسبوع 2', 'الأسبوع 3', 'الأسبوع 4'],
-            datasets: [
-                {
-                    label: 'حاضر',
-                    data: [4, 5, 4, 5],
-                    backgroundColor: 'rgba(16, 185, 129, 0.5)',
-                    borderColor: 'rgb(16, 185, 129)',
-                    borderWidth: 2
-                },
-                {
-                    label: 'غائب',
-                    data: [1, 0, 1, 0],
-                    backgroundColor: 'rgba(239, 68, 68, 0.5)',
-                    borderColor: 'rgb(239, 68, 68)',
-                    borderWidth: 2
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
+        // Filter by course
+        if (courseId !== 'all' && rowCourseId !== courseId) {
+            showRow = false;
         }
+        
+        // Filter by status
+        if (status !== 'all' && rowStatus !== status) {
+            showRow = false;
+        }
+        
+        row.style.display = showRow ? '' : 'none';
     });
 }
 
 // Initialize
-loadCourses();
-loadAttendance();
-createAttendanceChart();
+document.addEventListener('DOMContentLoaded', function() {
+    const studentId = <?php echo $userId; ?>;
+    
+    // Load attendance rate chart from Python API
+    ChartLoader.loadStudentAttendanceRate('attendanceRateChart', studentId);
+    
+    lucide.createIcons();
+});
 </script>

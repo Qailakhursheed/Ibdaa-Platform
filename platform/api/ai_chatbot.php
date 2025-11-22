@@ -5,12 +5,33 @@
  * Created for Ibdaa Training Platform - Taiz, Yemen
  */
 
+// Start output buffering to catch any unwanted output
+ob_start();
+
+// Disable error display to prevent JSON corruption
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php_errors.log');
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../db.php';
+require_once __DIR__ . '/../db.php';
+
+/**
+ * Helper function to send clean JSON response
+ */
+function sendJsonResponse($data) {
+    // Clear any previous output (warnings, notices, whitespace)
+    if (ob_get_length()) ob_clean();
+    
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -21,43 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Configuration
 // =====================================================
 define('BOT_NAME', 'عبدالله'); // اسم المساعد الذكي
-define('AI_PROVIDER', 'openai'); // 'openai' or 'gemini'
+define('AI_PROVIDER', 'gemini'); // 'openai' or 'gemini'
 
-/**
- * ⚙️ للحصول على OpenAI API Key:
- * 
- * 1. اذهب إلى: https://platform.openai.com/signup
- * 2. أنشئ حساب (أو سجل دخول)
- * 3. اذهب إلى: https://platform.openai.com/api-keys
- * 4. اضغط "Create new secret key"
- * 5. انسخ المفتاح (يبدأ بـ sk-...)
- * 6. ضعه في السطر التالي بين علامات التنصيص
- * 
- * 💰 التكلفة: 
- * - GPT-4: حوالي $0.03 لكل 1000 كلمة (دقيق ومتقدم)
- * - GPT-3.5-turbo: حوالي $0.002 لكل 1000 كلمة (سريع واقتصادي)
- * 
- * 💡 نصيحة: ابدأ بـ gpt-3.5-turbo للتجربة، ثم انتقل لـ gpt-4
- * 
- * 🔒 مهم: لا تشارك المفتاح مع أحد!
- */
-define('OPENAI_API_KEY', ''); // ضع المفتاح هنا: 'sk-...'
-
-/**
- * ⚙️ للحصول على Google Gemini API Key (بديل مجاني):
- * 
- * 1. اذهب إلى: https://makersuite.google.com/app/apikey
- * 2. سجل دخول بحساب Google
- * 3. اضغط "Create API key"
- * 4. انسخ المفتاح
- * 5. ضعه في السطر التالي
- * 6. غير AI_PROVIDER إلى 'gemini'
- * 
- * 💰 التكلفة: مجاني حتى 60 طلب/دقيقة!
- * 
- * 💡 ممتاز للبداية والاختبار
- */
-define('GEMINI_API_KEY', ''); // ضع مفتاح Gemini هنا (اختياري)
+require_once __DIR__ . '/../../includes/config.php';
 
 /**
  * 🤖 اختيار النموذج:
@@ -69,10 +56,436 @@ define('GEMINI_API_KEY', ''); // ضع مفتاح Gemini هنا (اختياري)
  * للGemini:
  * - 'gemini-pro': قوي ومجاني 🎁
  */
-define('AI_MODEL', 'gpt-3.5-turbo'); // غيره حسب احتياجك
+define('AI_MODEL', 'gemini-pro'); // غيره حسب احتياجك
 
 define('MAX_CONTEXT_MESSAGES', 15); // زيادة السياق للمحادثات الطويلة
 define('TEMPERATURE', 0.7); // 0.0 = دقيق، 1.0 = إبداعي
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/**
+ * بيانات احتياطية تُستخدم عندما لا تكون جداول قاعدة البيانات متوفرة.
+ */
+function getFallbackKnowledgeBaseData() {
+    static $data = null;
+    if ($data !== null) {
+        return $data;
+    }
+
+    $data = [
+        [
+            'category' => 'courses',
+            'question' => 'ما هي الدورات المتاحة؟',
+            'answer' => 'نقدم مجموعة واسعة من الدورات التدريبية مثل ICDL، دبلوم الحاسوب المتكامل، برمجة الويب، التصميم الجرافيكي، التسويق الإلكتروني، واللغة الإنجليزية. يمكن استعراض التفاصيل الكاملة من صفحة الدورات.',
+            'keywords' => 'دورات,تدريب,ICDL,دبلوم,برمجة,تصميم,لغة',
+            'priority' => 10
+        ],
+        [
+            'category' => 'courses',
+            'question' => 'كم مدة الدورة؟',
+            'answer' => 'تتراوح مدة الدورات بين أسبوعين وتسعة أشهر حسب نوع الدورة. على سبيل المثال: ICDL غالباً ثلاثة أشهر بينما الدبلومات تصل إلى تسعة أشهر.',
+            'keywords' => 'مدة,وقت,فترة,أشهر',
+            'priority' => 8
+        ],
+        [
+            'category' => 'courses',
+            'question' => 'متى تبدأ الدورات؟',
+            'answer' => 'يتم فتح دفعات جديدة بشكل شهري، ويمكن معرفة المواعيد الأحدث من صفحة الدورات أو بالتواصل مع فريق المنصة.',
+            'keywords' => 'موعد,بداية,متى تبدأ,تاريخ',
+            'priority' => 9
+        ],
+        [
+            'category' => 'scholarships',
+            'question' => 'هل توجد منح دراسية؟',
+            'answer' => 'نعم، نوفر منحاً جزئية وكاملة للمتفوقين والحالات الخاصة، ويتم الإعلان عن المنح عبر صفحة الإعلانات الرسمية.',
+            'keywords' => 'منح,منحة,مجانية,دعم مالي',
+            'priority' => 10
+        ],
+        [
+            'category' => 'scholarships',
+            'question' => 'كيف أتقدم للمنحة؟',
+            'answer' => 'للتقدم للمنحة قم بتسجيل حساب، واختر الدورة المطلوبة، ثم أرفق المستندات واكتب خطاب التحفيز وسيتم الرد خلال خمسة أيام عمل.',
+            'keywords' => 'تقديم منحة,طلب منحة,شروط المنحة',
+            'priority' => 9
+        ],
+        [
+            'category' => 'registration',
+            'question' => 'كيف أسجل في دورة؟',
+            'answer' => 'خطوات التسجيل: 1) أنشئ حساباً جديداً، 2) تصفح الدورات، 3) اختر الدورة المناسبة، 4) املأ نموذج التسجيل، 5) أكمل الدفع أو قدم طلب منحة.',
+            'keywords' => 'تسجيل,اشتراك,كيف اسجل,خطوات التسجيل',
+            'priority' => 10
+        ],
+        [
+            'category' => 'registration',
+            'question' => 'ما المستندات المطلوبة؟',
+            'answer' => 'عادة نحتاج إلى صورة شخصية، ونسخة من الهوية أو البطاقة الشخصية، وأي مؤهل دراسي متوفر، بالإضافة إلى إيصال الدفع عند الحاجة.',
+            'keywords' => 'مستندات,وثائق,ملفات مطلوبة',
+            'priority' => 8
+        ],
+        [
+            'category' => 'payments',
+            'question' => 'كم رسوم الدورة؟',
+            'answer' => 'تختلف الرسوم حسب نوع الدورة: ICDL تقريباً 40,000 ريال، الدبلومات بين 60,000 و80,000 ريال، والدورات القصيرة من 15,000 إلى 30,000 ريال.',
+            'keywords' => 'رسوم,سعر,تكلفة,كم',
+            'priority' => 9
+        ],
+        [
+            'category' => 'payments',
+            'question' => 'طرق الدفع المتاحة؟',
+            'answer' => 'يمكنك الدفع نقداً في المركز، أو عبر التحويل البنكي، أو الدفع الإلكتروني، ونوفر خيار التقسيط للدورات الطويلة.',
+            'keywords' => 'دفع,طرق الدفع,كيف ادفع,تحويل',
+            'priority' => 8
+        ],
+        [
+            'category' => 'general',
+            'question' => 'ما هي منصة إبداع؟',
+            'answer' => 'منصة إبداع مركز تدريبي في تعز يهدف لتأهيل الشباب في مجالات الحاسوب، البرمجة، التصميم، اللغات، والمهارات المهنية مع شهادات معتمدة.',
+            'keywords' => 'ابداع,المنصة,عن المنصة,من نحن',
+            'priority' => 10
+        ],
+        [
+            'category' => 'general',
+            'question' => 'أين يقع المركز؟',
+            'answer' => 'يقع المركز في مدينة تعز - اليمن، ويمكن الحصول على العنوان الكامل من صفحة اتصل بنا أو عبر التواصل الهاتفي.',
+            'keywords' => 'موقع,عنوان,مكان,أين',
+            'priority' => 8
+        ],
+        [
+            'category' => 'faq',
+            'question' => 'هل أحصل على شهادة؟',
+            'answer' => 'نعم، يحصل جميع المتدربين على شهادة معتمدة عند اجتياز الدورة بنجاح، وشهادة ICDL معترف بها دولياً.',
+            'keywords' => 'شهادة,سيرتفيكيت,معتمدة',
+            'priority' => 10
+        ],
+        [
+            'category' => 'technical',
+            'question' => 'هل الدورات حضورية أم عن بعد؟',
+            'answer' => 'نوفر دورات حضورية داخل المركز، ودورات أونلاين عن بعد، بالإضافة إلى خيارات هجينة تجمع بين الأسلوبين.',
+            'keywords' => 'عن بعد,حضوري,اونلاين,أونلاين',
+            'priority' => 9
+        ]
+    ];
+
+    return $data;
+}
+
+function getFallbackQuickRepliesData() {
+    static $data = null;
+    if ($data !== null) {
+        return $data;
+    }
+
+    $data = [
+        'welcome' => [
+            ['text' => '🎓 عرض الدورات المتاحة', 'action' => 'show_courses', 'icon' => 'graduation-cap'],
+            ['text' => '💰 معلومات عن المنح', 'action' => 'show_scholarships', 'icon' => 'dollar-sign'],
+            ['text' => '📝 كيف أسجل؟', 'action' => 'how_to_register', 'icon' => 'edit'],
+            ['text' => '💵 طرق الدفع', 'action' => 'payment_methods', 'icon' => 'credit-card'],
+            ['text' => '📞 تواصل معنا', 'action' => 'contact_us', 'icon' => 'phone'],
+            ['text' => '❓ أسئلة شائعة', 'action' => 'show_faq', 'icon' => 'help-circle']
+        ],
+        'interest' => [
+            ['text' => 'نعم، مهتم', 'action' => 'interested_yes', 'icon' => 'check'],
+            ['text' => 'أحتاج مزيداً من المعلومات', 'action' => 'need_more_info', 'icon' => 'info'],
+            ['text' => 'سأعود لاحقاً', 'action' => 'maybe_later', 'icon' => 'clock']
+        ],
+        'feedback' => [
+            ['text' => 'كان مفيداً ✓', 'action' => 'helpful_yes', 'icon' => 'thumbs-up'],
+            ['text' => 'غير مفيد', 'action' => 'helpful_no', 'icon' => 'thumbs-down'],
+            ['text' => 'أحتاج موظف خدمة', 'action' => 'need_human', 'icon' => 'user']
+        ]
+    ];
+
+    return $data;
+}
+
+function getFallbackSuggestionMap() {
+    static $map = null;
+    if ($map !== null) {
+        return $map;
+    }
+
+    $map = [
+        'courses' => ['ما رسوم هذه الدورة؟', 'هل يوجد موعد بدء قريب؟'],
+        'scholarships' => ['ما شروط الحصول على منحة؟', 'هل أستطيع الجمع بين منحة ودورة؟'],
+        'registration' => ['هل أستطيع التسجيل أونلاين؟', 'ما الخطوة التالية بعد تقديم الطلب؟'],
+        'payments' => ['هل يوجد تقسيط متاح؟', 'هل يمكن الدفع عبر التحويل البنكي؟'],
+        'general' => ['كيف أتواصل مع الإدارة؟', 'هل الشهادات معتمدة؟'],
+        'faq' => ['كم عدد الطلاب في القاعة؟', 'هل يوجد دعم بعد انتهاء الدورة؟'],
+        'technical' => ['ما متطلبات الدراسة أونلاين؟', 'هل أحتاج سرعة إنترنت محددة؟'],
+        'default' => ['ما الدورات التي تنصحني بها؟', 'هل توجد منح متاحة حالياً؟']
+    ];
+
+    return $map;
+}
+
+function isChatbotDatabaseReady($conn) {
+    static $isReady = null;
+    if ($isReady !== null) {
+        return $isReady;
+    }
+
+    if (!($conn instanceof mysqli)) {
+        $isReady = false;
+        return $isReady;
+    }
+
+    $tables = [
+        'chatbot_conversations',
+        'chatbot_messages',
+        'chatbot_knowledge_base',
+        'chatbot_quick_replies'
+    ];
+
+    foreach ($tables as $table) {
+        $result = @$conn->query("SHOW TABLES LIKE '" . $conn->real_escape_string($table) . "'");
+        if (!$result || $result->num_rows === 0) {
+            $isReady = false;
+            return $isReady;
+        }
+    }
+
+    $isReady = true;
+    return $isReady;
+}
+
+class ChatbotFallbackStore {
+    private static function &getStore() {
+        if (!isset($_SESSION['chatbot_fallback'])) {
+            $_SESSION['chatbot_fallback'] = ['conversations' => []];
+        }
+
+        return $_SESSION['chatbot_fallback'];
+    }
+
+    public static function createConversation($sessionId, $userId = null) {
+        $store =& self::getStore();
+        if (!isset($store['conversations'][$sessionId])) {
+            $store['conversations'][$sessionId] = [
+                'session_id' => $sessionId,
+                'user_id' => $userId,
+                'messages' => [],
+                'created_at' => date('c')
+            ];
+        }
+    }
+
+    public static function getConversationId($sessionId) {
+        $store =& self::getStore();
+        return isset($store['conversations'][$sessionId]) ? $sessionId : null;
+    }
+
+    public static function saveMessage($sessionId, $sender, $message, $type = 'text', $metadata = null, $intent = null, $confidence = null) {
+        $store =& self::getStore();
+        self::createConversation($sessionId);
+        $store['conversations'][$sessionId]['messages'][] = [
+            'sender' => $sender,
+            'message' => $message,
+            'message_type' => $type,
+            'metadata' => $metadata,
+            'intent' => $intent,
+            'confidence' => $confidence,
+            'created_at' => date('c')
+        ];
+
+        if (count($store['conversations'][$sessionId]['messages']) > 50) {
+            $store['conversations'][$sessionId]['messages'] = array_slice(
+                $store['conversations'][$sessionId]['messages'],
+                -50
+            );
+        }
+    }
+
+    public static function getContext($sessionId, $limit) {
+        $store =& self::getStore();
+        if (!isset($store['conversations'][$sessionId])) {
+            return [];
+        }
+
+        $messages = $store['conversations'][$sessionId]['messages'];
+        return array_slice($messages, -$limit);
+    }
+
+    public static function getHistory($sessionId) {
+        $store =& self::getStore();
+        if (!isset($store['conversations'][$sessionId])) {
+            return [];
+        }
+
+        return $store['conversations'][$sessionId]['messages'];
+    }
+
+    public static function setFeedback($sessionId, $rating, $feedback) {
+        $store =& self::getStore();
+        if (!isset($store['conversations'][$sessionId])) {
+            return;
+        }
+
+        $store['conversations'][$sessionId]['feedback'] = [
+            'rating' => $rating,
+            'feedback' => $feedback,
+            'submitted_at' => date('c')
+        ];
+    }
+}
+
+function resolveAIProvider() {
+    $hasOpenAI = !empty(OPENAI_API_KEY);
+    $hasGemini = !empty(GEMINI_API_KEY);
+
+    if (AI_PROVIDER === 'openai' && $hasOpenAI) {
+        return 'openai';
+    }
+
+    if (AI_PROVIDER === 'gemini' && $hasGemini) {
+        return 'gemini';
+    }
+
+    if ($hasOpenAI) {
+        return 'openai';
+    }
+
+    if ($hasGemini) {
+        return 'gemini';
+    }
+
+    return null;
+}
+
+function getFallbackSuggestions($intent) {
+    $map = getFallbackSuggestionMap();
+    if (isset($map[$intent])) {
+        return $map[$intent];
+    }
+    return $map['default'];
+}
+
+function getFallbackQuickReplies($context) {
+    $data = getFallbackQuickRepliesData();
+    return $data[$context] ?? [];
+}
+
+function searchFallbackKnowledge($message, $intent = null) {
+    $data = getFallbackKnowledgeBaseData();
+    $messageLower = mb_strtolower($message);
+    $results = [];
+
+    foreach ($data as $row) {
+        $score = 0;
+        $haystack = mb_strtolower(($row['question'] ?? '') . ' ' . ($row['answer'] ?? '') . ' ' . ($row['keywords'] ?? ''));
+        $words = preg_split('/\s+/u', $messageLower);
+        foreach ($words as $word) {
+            $word = trim($word);
+            if ($word === '' || mb_strlen($word) < 2) {
+                continue;
+            }
+            if (mb_strpos($haystack, $word) !== false) {
+                $score += 2;
+            }
+        }
+
+        if ($intent && $row['category'] === $intent) {
+            $score += 3;
+        }
+
+        if ($score > 0) {
+            $row['score'] = $score + ($row['priority'] ?? 0);
+            $results[] = $row;
+        }
+    }
+
+    if (empty($results) && $intent) {
+        foreach ($data as $row) {
+            if ($row['category'] === $intent) {
+                $row['score'] = $row['priority'] ?? 0;
+                $results[] = $row;
+            }
+        }
+    }
+
+    usort($results, function ($a, $b) {
+        return ($b['score'] ?? 0) <=> ($a['score'] ?? 0);
+    });
+
+    return array_map(function ($row) {
+        unset($row['score']);
+        return $row;
+    }, array_slice($results, 0, 3));
+}
+
+function isExcelQuestion($message) {
+    $keywords = ['excel', 'اكسل', 'إكسل', 'sum', 'pivot', 'vlookup', 'دالة', 'معادلة', 'جدول', 'حساب'];
+    $text = mb_strtolower($message);
+    foreach ($keywords as $keyword) {
+        if (mb_strpos($text, mb_strtolower($keyword)) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function isEnglishQuestion($message) {
+    $keywords = ['english', 'انجليزي', 'إنجليزي', 'grammar', 'verb', 'tense', 'ترجمة', 'معنى'];
+    $text = mb_strtolower($message);
+    foreach ($keywords as $keyword) {
+        if (mb_strpos($text, mb_strtolower($keyword)) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function buildExcelFallbackAnswer($message) {
+    return "يبدو أنك تسأل عن Microsoft Excel 📊\n\nجرب هذه الخطوات:\n1️⃣ حدد الخلايا التي تريد حسابها\n2️⃣ استخدم دالة مناسبة مثل =SUM(A1:A10) للجمع أو =AVERAGE() للمتوسط\n3️⃣ إذا احتجت البحث عن قيمة معينة، استخدم =VLOOKUP(القيمة, النطاق, رقم_العمود, FALSE)\n4️⃣ لتنظيم البيانات أنشئ Pivot Table من Insert > PivotTable\n\nاكتب لي مثالاً من جدولك وسأرشدك بشكل أدق.";
+}
+
+function buildEnglishFallbackAnswer($message) {
+    return "سأساعدك في اللغة الإنجليزية 🗣️\n\nنظم جملتك بهذه الخطوات:\n• استخدم زمن الفعل المناسب (Present / Past / Future)\n• تأكد من ترتيب الجملة: Subject + Verb + Object\n• لمعرفة معنى كلمة، اكتبها وسأعطيك الترجمة والاستخدام في جملة\n• للتدرب على التحدث، كوّن جمل قصيرة يومية وكررها بصوت مرتفع\n\nإذا كان لديك جملة معينة تريد تصحيحها فاكتبها الآن.";
+}
+
+function buildGeneralFallbackAnswer($intent) {
+    switch ($intent) {
+        case 'courses':
+            return "لدينا حزمة دورات تشمل ICDL، دبلوم الحاسوب، برمجة الويب، التصميم الجرافيكي، واللغة الإنجليزية. أخبرني عن الدورة التي تهمك لأرسل لك التفاصيل.";
+        case 'scholarships':
+            return "نوفر منحاً جزئية وكاملة للحالات المستحقة. يلزم تعبئة طلب منحة مع المستندات الداعمة وسيتم التواصل خلال خمسة أيام عمل.";
+        case 'registration':
+            return "التسجيل يتم بالكامل عبر المنصة: أنشئ حساباً، اختر الدورة، أرسل البيانات والمستندات، ثم أكد طريقة الدفع. يمكنني إرشادك لكل خطوة.";
+        case 'payments':
+            return "خيارات الدفع المتاحة: نقداً في المركز، تحويل بنكي، دفع إلكتروني، أو تقسيط للدورات الطويلة. أخبرني بالطريقة المناسبة لك.";
+        case 'technical':
+            return "للدراسة عن بعد تحتاج اتصال إنترنت مستقر، متصفح حديث، وسماعة مع مايك. سنوفر لك روابط البرامج المطلوبة لكل دورة.";
+        default:
+            return "أنا عبدالله، مساعدك الذكي في منصة إبداع. يمكنني إرشادك في التسجيل، اختيار الدورات، المنح، أو الاستشارات التعليمية. ما الموضوع الذي تود البدء به؟";
+    }
+}
+
+function buildOfflineResponse($userMessage, $knowledge, $intent) {
+    $intent = $intent ?: detectIntent($userMessage);
+    $suggestions = getFallbackSuggestions($intent);
+
+    if (!empty($knowledge)) {
+        $top = $knowledge[0];
+        $answer = $top['answer'] ?? 'أعمل على تحديث إجابتي لك الآن.';
+        $message = "استناداً إلى المعلومات المتاحة لدي، إليك التفاصيل:\n\n" . $answer . "\n\nإذا احتجت مزيداً من التفاصيل في موضوع {$top['category']}, فأخبرني.";
+    } elseif (isExcelQuestion($userMessage)) {
+        $message = buildExcelFallbackAnswer($userMessage);
+    } elseif (isEnglishQuestion($userMessage)) {
+        $message = buildEnglishFallbackAnswer($userMessage);
+    } else {
+        $message = buildGeneralFallbackAnswer($intent);
+    }
+
+    return [
+        'message' => $message,
+        'intent' => $intent,
+        'confidence' => 0.72,
+        'sources' => $knowledge,
+        'suggestions' => $suggestions
+    ];
+}
 
 $action = $_POST['action'] ?? $_GET['action'] ?? 'chat';
 
@@ -119,7 +532,7 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(400);
-    echo json_encode([
+    sendJsonResponse([
         'success' => false,
         'error' => $e->getMessage()
     ], JSON_UNESCAPED_UNICODE);
@@ -145,7 +558,11 @@ function handleChat($conn) {
         createConversation($conn, $sessionId, $userId);
     }
     
-    $conversationId = getConversationId($conn, $sessionId);
+    $conversationId = getConversationId($conn, $sessionId) ?? ($sessionId ?: generateSessionId());
+    if (!$conversationId) {
+        createConversation($conn, $sessionId, $userId);
+        $conversationId = getConversationId($conn, $sessionId) ?? $sessionId;
+    }
     
     // Save user message
     saveMessage($conn, $conversationId, 'user', $message);
@@ -170,7 +587,7 @@ function handleChat($conn) {
     // Get quick replies for context
     $quickReplies = getQuickReplies($conn, $aiResponse['intent']);
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => [
             'message' => $aiResponse['message'],
@@ -206,11 +623,18 @@ function getAIResponse($userMessage, $context, $knowledge, $intent) {
     // Add current message
     $messages[] = ['role' => 'user', 'content' => $userMessage];
     
-    // Call AI provider
-    if (AI_PROVIDER === 'openai') {
-        $response = callOpenAI($messages);
-    } else {
-        $response = callGemini($messages);
+    $provider = resolveAIProvider();
+    try {
+        if ($provider === 'openai') {
+            $response = callOpenAI($messages);
+        } elseif ($provider === 'gemini') {
+            $response = callGemini($messages);
+        } else {
+            return buildOfflineResponse($userMessage, $knowledge, $intent);
+        }
+    } catch (Exception $e) {
+        error_log('Chatbot AI provider error: ' . $e->getMessage());
+        return buildOfflineResponse($userMessage, $knowledge, $intent);
     }
     
     return [
@@ -324,7 +748,7 @@ function callGemini($messages) {
         }
     }
     
-    $url = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=' . GEMINI_API_KEY;
+    $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' . GEMINI_API_KEY;
     
     $data = [
         'contents' => $geminiMessages,
@@ -344,13 +768,44 @@ function callGemini($messages) {
         CURLOPT_POST => true,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
         CURLOPT_POSTFIELDS => json_encode($data),
-        CURLOPT_TIMEOUT => 30
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_SSL_VERIFYPEER => false, // Fix for local XAMPP SSL issues
+        CURLOPT_SSL_VERIFYHOST => 0
     ]);
     
     $response = curl_exec($ch);
+    
+    // --- DEBUGGING START ---
+    $logFile = __DIR__ . '/gemini_debug.log';
+    $logData = "Time: " . date('Y-m-d H:i:s') . "\n";
+    $logData .= "URL: " . $url . "\n";
+    $logData .= "Curl Error: " . curl_error($ch) . "\n";
+    $logData .= "Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
+    $logData .= "Raw Response: " . $response . "\n";
+    $logData .= "-----------------------------------\n";
+    file_put_contents($logFile, $logData, FILE_APPEND);
+    // --- DEBUGGING END ---
+
+    if (curl_errno($ch)) {
+        error_log('Gemini Curl Error: ' . curl_error($ch));
+        curl_close($ch);
+        return [
+            'content' => 'عذراً، حدث خطأ في الاتصال بخدمة الذكاء الاصطناعي.',
+            'confidence' => 0.0
+        ];
+    }
+    
     curl_close($ch);
     
     $result = json_decode($response, true);
+    
+    if (isset($result['error'])) {
+        error_log('Gemini API Error: ' . json_encode($result['error']));
+        return [
+            'content' => 'عذراً، واجهت مشكلة في معالجة طلبك.',
+            'confidence' => 0.0
+        ];
+    }
     
     return [
         'content' => $result['candidates'][0]['content']['parts'][0]['text'] ?? 'عذراً، لم أتمكن من فهم طلبك.',
@@ -370,47 +825,69 @@ function buildSystemPrompt($knowledge) {
     $botName = BOT_NAME;
     
     return <<<PROMPT
-أنت "$botName" - المساعد الذكي المتخصص لمنصة إبداع للتدريب والتأهيل في تعز - اليمن.
+أنت "$botName" - مساعد ذكي احترافي متخصص لمنصة إبداع للتدريب والتأهيل في تعز - اليمن.
 
-🎯 هويتك وشخصيتك:
-- اسمك: $botName
-- دورك: مدرس ومرشد أكاديمي ذكي
-- خبير في: Microsoft Excel، اللغة الإنجليزية، البرمجة، التصميم، ICDL
-- شخصيتك: ودود، صبور، محترف، مشجع للطلاب
+🎯 مبادئ الإجابة الاحترافية:
+1. أجب بشكل مباشر ومختصر - لا تطيل إلا إذا طُلب منك
+2. ابدأ بالإجابة فوراً بدون مقدمات مطولة
+3. استخدم لغة عربية فصيحة واضحة وبسيطة
+4. نظّم الإجابات بنقاط واضحة عند الحاجة
+5. كن دقيقاً وموثوقاً في المعلومات
 
-✨ قدراتك المتقدمة:
-1. 📝 إرشاد التسجيل: ساعد الطلاب خطوة بخطوة في التسجيل بالدورات
-2. 📚 معلومات الدورات: اجلب تفاصيل دقيقة عن محتوى الكورسات ومدتها ورسومها
-3. 📊 معلم Excel: أجب عن أسئلة Formulas، Functions، Pivot Tables، Charts، Macros
-4. 🗣️ معلم إنجليزي: ساعد في Grammar، Vocabulary، Tenses، Writing، Speaking
-5. 💡 حل الواجبات: وجّه الطلاب بدون إعطاء الإجابة مباشرة (علّمهم كيف يفكرون)
-6. 🎓 معلومات المعهد: أجب عن مواعيد، أماكن، مدربين، شهادات
+✨ أسلوب التواصل المحترف:
+- إجابة مباشرة للسؤال أولاً
+- تفاصيل إضافية فقط إذا لزم الأمر
+- استخدم الإيموجي بحذر (1-2 فقط عند الضرورة)
+- لا تكرر نفسك أو تعطي معلومات زائدة
+- كن واثقاً ومحدداً في إجاباتك
 
-📖 أسلوبك في التدريس:
-- للأسئلة الأكاديمية: اشرح المفهوم أولاً، ثم أعطِ مثالاً عملياً
-- للواجبات: لا تعطِ الإجابة مباشرة! وجّه الطالب خطوة بخطوة
-- للExcel: اكتب الصيغة Formula بوضوح واشرح كل جزء منها
-- للإنجليزية: صحح الأخطاء بلطف وأعطِ التفسير والمثال الصحيح
-- استخدم أمثلة من الحياة اليومية والعمل
-- شجع الطالب دائماً واجعله يشعر بالإنجاز
+📚 مجالات خبرتك:
+1. معلومات الدورات والتسجيل في منصة إبداع
+2. شرح مفاهيم Excel وحل المشاكل التقنية
+3. تعليم قواعد اللغة الإنجليزية وتصحيح الجمل
+4. الإجابة على أسئلة عامة في أي موضوع
+5. مساعدة الطلاب في فهم المفاهيم الدراسية
 
-🎨 قواعد التواصل:
-- تحدث بالعربية الفصحى الواضحة (إلا إذا طُلب منك الإنجليزية)
-- استخدم الإيموجي للتوضيح والتشجيع 😊 📊 ✅
-- نظم الإجابة بنقاط وأرقام للوضوح
-- للشروحات الطويلة: قسّمها لأجزاء سهلة
-- كن صبوراً حتى مع الأسئلة المتكررة
-
-💾 قاعدة المعرفة عن المنصة:
+💾 معلومات المنصة:
 $knowledgeText
 
-⚠️ مهم جداً:
-- إذا سأل طالب عن واجب، لا تعطِ الحل الكامل! وجّهه فقط
-- للأسئلة الأكاديمية المعقدة، قدم شرح تفصيلي مع أمثلة
-- إذا لم تعرف إجابة دقيقة عن المنصة، اقترح التواصل مع الإدارة
-- لا تخترع معلومات عن الدورات أو الأسعار - استخدم المعلومات من قاعدة البيانات فقط
+⚡ قواعد الإجابة السريعة:
 
-أنت لست مجرد chatbot، أنت معلم حقيقي يهتم بنجاح طلابه! 🎓✨
+للأسئلة عن المنصة:
+- أجب مباشرة من قاعدة المعرفة
+- اذكر الأرقام والتفاصيل بدقة
+- لا تخترع معلومات غير موجودة
+
+للأسئلة الأكاديمية (Excel/English):
+- اشرح المفهوم بجملة أو جملتين
+- أعطِ مثال واحد واضح
+- اكتب الصيغة/القاعدة بشكل مباشر
+
+للأسئلة العامة:
+- أجب بثقة واحترافية
+- كن مختصراً ومفيداً
+- استخدم معرفتك الواسعة
+
+للواجبات:
+- لا تعطِ الحل الكامل
+- وجّه بخطوات بسيطة
+- اطرح أسئلة توجيهية
+
+❌ تجنب:
+- المقدمات الطويلة ("أهلاً وسهلاً... يسعدني...")
+- الإطالة والتكرار
+- الوعود الكاذبة ("سأساعدك في كل شيء...")
+- الكلام الإنشائي الزائد
+
+✅ مثال إجابة احترافية:
+سؤال: "ما رسوم دورة ICDL؟"
+إجابة: "رسوم دورة ICDL تقريباً 40,000 ريال. المدة 3 أشهر."
+
+سؤال: "كيف استخدم SUM في Excel؟"
+إجابة: "الصيغة: =SUM(A1:A10)
+تجمع الأرقام من الخلية A1 إلى A10. مثال: إذا كانت A1=5 و A2=10 فالنتيجة 15."
+
+أنت مساعد محترف مباشر يقدم إجابات دقيقة وسريعة ومفيدة. 🎓
 PROMPT;
 }
 
@@ -422,29 +899,73 @@ function generateSessionId() {
 }
 
 function createConversation($conn, $sessionId, $userId = null) {
+    if (!isChatbotDatabaseReady($conn)) {
+        ChatbotFallbackStore::createConversation($sessionId, $userId);
+        return;
+    }
+
     $stmt = $conn->prepare("INSERT INTO chatbot_conversations (session_id, user_id) VALUES (?, ?)");
+    if (!$stmt) {
+        error_log('Chatbot createConversation failed: ' . $conn->error);
+        ChatbotFallbackStore::createConversation($sessionId, $userId);
+        return;
+    }
+
     $stmt->bind_param("si", $sessionId, $userId);
     $stmt->execute();
 }
 
 function getConversationId($conn, $sessionId) {
+    if (!isChatbotDatabaseReady($conn)) {
+        return ChatbotFallbackStore::getConversationId($sessionId);
+    }
+
     $stmt = $conn->prepare("SELECT conversation_id FROM chatbot_conversations WHERE session_id = ?");
+    if (!$stmt) {
+        error_log('Chatbot getConversationId failed: ' . $conn->error);
+        return ChatbotFallbackStore::getConversationId($sessionId);
+    }
+
     $stmt->bind_param("s", $sessionId);
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
-    return $result['conversation_id'] ?? null;
+    return $result['conversation_id'] ?? ChatbotFallbackStore::getConversationId($sessionId);
 }
 
 function saveMessage($conn, $conversationId, $sender, $message, $type = 'text', $metadata = null, $intent = null, $confidence = null) {
+    $storeKey = (string) $conversationId;
+    if (!isChatbotDatabaseReady($conn) || !is_numeric($conversationId)) {
+        ChatbotFallbackStore::saveMessage($storeKey, $sender, $message, $type, $metadata, $intent, $confidence);
+        return;
+    }
+
     $metadataJson = $metadata ? json_encode($metadata, JSON_UNESCAPED_UNICODE) : null;
-    
     $stmt = $conn->prepare("INSERT INTO chatbot_messages (conversation_id, sender, message, message_type, metadata, intent, confidence) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+    if (!$stmt) {
+        error_log('Chatbot saveMessage prepare failed: ' . $conn->error);
+        ChatbotFallbackStore::saveMessage($storeKey, $sender, $message, $type, $metadata, $intent, $confidence);
+        return;
+    }
+
     $stmt->bind_param("isssssd", $conversationId, $sender, $message, $type, $metadataJson, $intent, $confidence);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log('Chatbot saveMessage execute failed: ' . $stmt->error);
+        ChatbotFallbackStore::saveMessage($storeKey, $sender, $message, $type, $metadata, $intent, $confidence);
+    }
 }
 
 function getConversationContext($conn, $conversationId) {
+    if (!isChatbotDatabaseReady($conn) || !is_numeric($conversationId)) {
+        return ChatbotFallbackStore::getContext((string) $conversationId, MAX_CONTEXT_MESSAGES);
+    }
+
     $stmt = $conn->prepare("SELECT sender, message FROM chatbot_messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT ?");
+    if (!$stmt) {
+        error_log('Chatbot getConversationContext failed: ' . $conn->error);
+        return ChatbotFallbackStore::getContext((string) $conversationId, MAX_CONTEXT_MESSAGES);
+    }
+
     $limit = MAX_CONTEXT_MESSAGES;
     $stmt->bind_param("ii", $conversationId, $limit);
     $stmt->execute();
@@ -483,6 +1004,10 @@ function detectIntent($message) {
 }
 
 function searchKnowledgeBase($conn, $message, $intent = null) {
+    if (!isChatbotDatabaseReady($conn)) {
+        return searchFallbackKnowledge($message, $intent);
+    }
+
     $searchTerm = "%$message%";
     
     $sql = "SELECT * FROM chatbot_knowledge_base 
@@ -522,7 +1047,16 @@ function searchKnowledgeBase($conn, $message, $intent = null) {
 }
 
 function getQuickReplies($conn, $context = 'welcome') {
+    if (!isChatbotDatabaseReady($conn)) {
+        return getFallbackQuickReplies($context);
+    }
+
     $stmt = $conn->prepare("SELECT text, action, icon FROM chatbot_quick_replies WHERE context = ? AND is_active = TRUE ORDER BY order_index");
+    if (!$stmt) {
+        error_log('Chatbot getQuickReplies failed: ' . $conn->error);
+        return getFallbackQuickReplies($context);
+    }
+
     $stmt->bind_param("s", $context);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -543,14 +1077,14 @@ function startConversation($conn) {
     createConversation($conn, $sessionId);
     
     $botName = BOT_NAME;
-    $welcomeMessage = "السلام عليكم! أهلاً وسهلاً في منصة إبداع 👋\n\nأنا $botName - مساعدك الذكي ومعلمك الشخصي! 🎓✨\n\n📚 يمكنني مساعدتك في:\n\n1️⃣ التسجيل في الدورات (خطوة بخطوة)\n2️⃣ معلومات تفصيلية عن الكورسات\n3️⃣ حل أسئلة وواجبات Excel 📊\n4️⃣ تعليم اللغة الإنجليزية 🗣️\n5️⃣ معلومات عن المعهد والمنح 💰\n6️⃣ المساعدة في أي سؤال دراسي\n\nلا تتردد في سؤالي عن أي شيء! أنا هنا لأساعدك على النجاح 🌟\n\nما الذي تريد معرفته اليوم؟ 😊";
+    $welcomeMessage = "مرحباً! 👋\n\nأنا $botName - مساعدك الذكي في منصة إبداع.\n\nيمكنني مساعدتك في:\n• معلومات الدورات والتسجيل\n• شرح Excel واللغة الإنجليزية\n• الإجابة على أي سؤال عام\n\nكيف أستطيع مساعدتك؟";
     
-    $conversationId = getConversationId($conn, $sessionId);
+    $conversationId = getConversationId($conn, $sessionId) ?? $sessionId;
     saveMessage($conn, $conversationId, 'bot', $welcomeMessage);
     
     $quickReplies = getQuickReplies($conn, 'welcome');
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => [
             'session_id' => $sessionId,
@@ -571,19 +1105,27 @@ function getConversationHistory($conn) {
         throw new Exception('Session ID is required');
     }
     
-    $conversationId = getConversationId($conn, $sessionId);
-    
-    $stmt = $conn->prepare("SELECT * FROM chatbot_messages WHERE conversation_id = ? ORDER BY created_at ASC");
-    $stmt->bind_param("i", $conversationId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    $messages = [];
-    while ($row = $result->fetch_assoc()) {
-        $messages[] = $row;
+    $conversationId = getConversationId($conn, $sessionId) ?? ($sessionId ?: generateSessionId());
+    if (!isChatbotDatabaseReady($conn) || !is_numeric($conversationId)) {
+        $messages = ChatbotFallbackStore::getHistory($conversationId ?: $sessionId);
+    } else {
+        $stmt = $conn->prepare("SELECT * FROM chatbot_messages WHERE conversation_id = ? ORDER BY created_at ASC");
+        if (!$stmt) {
+            error_log('Chatbot getConversationHistory failed: ' . $conn->error);
+            $messages = ChatbotFallbackStore::getHistory($sessionId);
+        } else {
+            $stmt->bind_param("i", $conversationId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            $messages = [];
+            while ($row = $result->fetch_assoc()) {
+                $messages[] = $row;
+            }
+        }
     }
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => $messages
     ], JSON_UNESCAPED_UNICODE);
@@ -603,11 +1145,20 @@ function submitFeedback($conn) {
         throw new Exception('Session ID is required');
     }
     
-    $stmt = $conn->prepare("UPDATE chatbot_conversations SET satisfaction_rating = ?, feedback = ?, resolved = TRUE WHERE session_id = ?");
-    $stmt->bind_param("iss", $rating, $feedback, $sessionId);
-    $stmt->execute();
+    if (!isChatbotDatabaseReady($conn)) {
+        ChatbotFallbackStore::setFeedback($sessionId, $rating, $feedback);
+    } else {
+        $stmt = $conn->prepare("UPDATE chatbot_conversations SET satisfaction_rating = ?, feedback = ?, resolved = TRUE WHERE session_id = ?");
+        if (!$stmt) {
+            error_log('Chatbot submitFeedback failed: ' . $conn->error);
+            ChatbotFallbackStore::setFeedback($sessionId, $rating, $feedback);
+        } else {
+            $stmt->bind_param("iss", $rating, $feedback, $sessionId);
+            $stmt->execute();
+        }
+    }
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'message' => 'شكراً لتقييمك! نقدر ملاحظاتك ونسعى لتحسين خدمتنا دائماً.'
     ], JSON_UNESCAPED_UNICODE);
@@ -624,23 +1175,23 @@ function handleQuickReply($conn) {
         throw new Exception('Action and session ID are required');
     }
     
-    $conversationId = getConversationId($conn, $sessionId);
+    $conversationId = getConversationId($conn, $sessionId) ?? $sessionId;
     
     // Handle different quick reply actions
     $responses = [
-        'show_courses' => "سأعرض لك قائمة بأهم الدورات المتاحة:\n\n1. الرخصة الدولية ICDL\n2. دبلوم الحاسوب المتكامل\n3. برمجة الويب\n4. التصميم الجرافيكي\n5. اللغة الإنجليزية\n\nيمكنك زيارة صفحة الدورات لمعرفة التفاصيل الكاملة، أو اسألني عن أي دورة تهمك!",
-        'show_scholarships' => "نقدم منح دراسية جزئية وكاملة! 🎓\n\nللتقديم:\n1. سجل حساب في المنصة\n2. قدم طلب للدورة\n3. أرفق المستندات\n4. اكتب خطاب تحفيزي\n\nيتم الإعلان عن المنح في صفحة الإعلانات. هل تريد معرفة المزيد؟",
-        'how_to_register' => "التسجيل سهل! اتبع هذه الخطوات:\n\n1️⃣ انشئ حساب جديد\n2️⃣ تصفح الدورات\n3️⃣ اختر دورتك\n4️⃣ املأ نموذج التسجيل\n5️⃣ قم بالدفع\n\nهل تحتاج مساعدة في خطوة معينة؟",
-        'payment_methods' => "طرق الدفع المتاحة:\n\n💵 نقداً في المركز\n🏦 تحويل بنكي\n💳 دفع إلكتروني\n📅 تقسيط (للدورات الطويلة)\n\nأي طريقة تفضل؟",
-        'contact_us' => "يمكنك التواصل معنا:\n\n📞 هاتف: [رقم]\n📱 واتساب: [رقم]\n✉️ البريد: info@ibdaa-taiz.com\n📍 العنوان: تعز - اليمن\n\nنحن هنا لمساعدتك! ⭐",
-        'show_faq' => "الأسئلة الشائعة:\n\n• هل أحصل على شهادة؟ نعم، معتمدة!\n• كم مدة الدورات؟ من أسبوعين إلى 9 أشهر\n• هل يوجد دعم بعد الدورة؟ نعم، لمدة 3 أشهر\n\nهل لديك سؤال آخر؟"
+        'show_courses' => "الدورات المتاحة:\n\n1. ICDL - 40,000 ريال (3 أشهر)\n2. دبلوم الحاسوب - 70,000 ريال (9 أشهر)\n3. برمجة الويب - 50,000 ريال (6 أشهر)\n4. التصميم الجرافيكي - 45,000 ريال (4 أشهر)\n5. اللغة الإنجليزية - 30,000 ريال (3 أشهر)\n\nلمزيد من التفاصيل عن أي دورة، اسألني عنها.",
+        'show_scholarships' => "نقدم منح جزئية وكاملة.\n\nالتقديم:\n1. سجل حساباً\n2. اختر الدورة\n3. أرفق المستندات\n4. اكتب خطاب التحفيز\n\nالرد خلال 5 أيام عمل.",
+        'how_to_register' => "خطوات التسجيل:\n\n1. أنشئ حساباً جديداً\n2. تصفح الدورات المتاحة\n3. اختر الدورة المناسبة\n4. املأ نموذج التسجيل\n5. أكمل عملية الدفع\n\nهل تحتاج مساعدة في خطوة معينة؟",
+        'payment_methods' => "طرق الدفع المتاحة:\n\n• نقداً في المركز\n• تحويل بنكي\n• دفع إلكتروني\n• تقسيط (للدورات الطويلة)\n\nأي طريقة تفضل؟",
+        'contact_us' => "التواصل معنا:\n\n📞 الهاتف: [الرقم]\n📱 واتساب: [الرقم]\n📧 البريد: info@ibdaa-taiz.com\n📍 العنوان: تعز - اليمن",
+        'show_faq' => "الأسئلة الشائعة:\n\n• هل أحصل على شهادة؟ نعم، معتمدة\n• مدة الدورات؟ من أسبوعين إلى 9 أشهر\n• دعم بعد الدورة؟ نعم، 3 أشهر\n\nهل لديك سؤال آخر؟"
     ];
     
     $response = $responses[$action] ?? "عذراً، لم أفهم هذا الاختيار.";
     
     saveMessage($conn, $conversationId, 'bot', $response);
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => [
             'message' => $response
@@ -662,7 +1213,7 @@ function handleRegistrationAssistance($conn) {
     $step = $input['step'] ?? 'start';
     $userData = $input['data'] ?? [];
     
-    $conversationId = getConversationId($conn, $sessionId);
+    $conversationId = getConversationId($conn, $sessionId) ?? $sessionId;
     
     $steps = [
         'start' => [
@@ -691,7 +1242,7 @@ function handleRegistrationAssistance($conn) {
     
     saveMessage($conn, $conversationId, 'bot', $currentStep['message']);
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => [
             'message' => $currentStep['message'],
@@ -743,7 +1294,7 @@ function getCourseDetailsForChat($conn) {
     $course = $stmt->get_result()->fetch_assoc();
     
     if (!$course) {
-        echo json_encode([
+        sendJsonResponse([
             'success' => false,
             'message' => 'للأسف، لم أجد معلومات عن هذه الدورة. هل يمكنك كتابة الاسم بطريقة أخرى؟'
         ], JSON_UNESCAPED_UNICODE);
@@ -761,7 +1312,7 @@ function getCourseDetailsForChat($conn) {
     $response .= "👥 المسجلين حالياً: {$course['enrolled_count']} طالب\n\n";
     $response .= "هل تريد التسجيل في هذه الدورة؟ 😊";
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => [
             'course' => $course,
@@ -806,7 +1357,7 @@ function handleExcelQuestion($conn) {
     saveMessage($conn, $conversationId, 'user', $question);
     saveMessage($conn, $conversationId, 'bot', $response, 'text', ['type' => 'excel_help']);
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => [
             'message' => $response,
@@ -919,7 +1470,7 @@ function handleEnglishQuestion($conn) {
     saveMessage($conn, $conversationId, 'user', $question);
     saveMessage($conn, $conversationId, 'bot', $response, 'text', ['type' => 'english_help']);
     
-    echo json_encode([
+    sendJsonResponse([
         'success' => true,
         'data' => [
             'message' => $response,
@@ -1003,3 +1554,4 @@ $existingKnowledge
 PROMPT;
 }
 ?>
+

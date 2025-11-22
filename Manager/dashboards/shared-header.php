@@ -4,14 +4,31 @@
  * موارد مشتركة لجميع لوحات التحكم
  */
 
-// بدء الجلسة
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+require_once __DIR__ . '/../../includes/session_security.php';
+SessionSecurity::startSecureSession();
+
+// حساب المسارات الأساسية للروابط (يدعم بيئات التطوير والإنتاج)
+$docRootPath = isset($_SERVER['DOCUMENT_ROOT']) && $_SERVER['DOCUMENT_ROOT']
+    ? realpath($_SERVER['DOCUMENT_ROOT'])
+    : realpath(__DIR__ . '/../../..');
+$docRootPath = $docRootPath ? rtrim(str_replace('\\', '/', $docRootPath), '/') : '';
+
+$projectRootPath = rtrim(str_replace('\\', '/', realpath(__DIR__ . '/../../')), '/');
+$projectBaseUrl = $docRootPath && strpos($projectRootPath, $docRootPath) === 0
+    ? substr($projectRootPath, strlen($docRootPath))
+    : '';
+$projectBaseUrl = '/' . ltrim($projectBaseUrl, '/');
+if ($projectBaseUrl === '/') {
+    $projectBaseUrl = '';
 }
+
+$managerBaseUrl = '/' . ltrim(($projectBaseUrl ? $projectBaseUrl . '/Manager' : 'Manager'), '/');
+$platformBaseUrl = '/' . ltrim(($projectBaseUrl ? $projectBaseUrl . '/platform' : 'platform'), '/');
 
 // التحقق من تسجيل الدخول
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
+    $redirectTarget = $_SERVER['REQUEST_URI'] ?? '';
+    header('Location: ' . $managerBaseUrl . '/login.php?redirect=' . urlencode($redirectTarget));
     exit;
 }
 
@@ -58,6 +75,7 @@ function formatMoney($amount) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
     <title><?php echo $currentRoleLabel; ?> - منصة إبداع</title>
     
     <!-- Tailwind CSS -->
@@ -75,10 +93,13 @@ function formatMoney($amount) {
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="../assets/css/ai-images.css">
     <!-- Chatbot widget styles (Manager area) -->
-    <link rel="stylesheet" href="/platform/css/chatbot.css">
-    <script defer src="/platform/js/chatbot.js"></script>
+    <link rel="stylesheet" href="<?php echo $platformBaseUrl; ?>/css/chatbot.css">
+    <script defer src="<?php echo $platformBaseUrl; ?>/js/chatbot.js"></script>
+    <script>
+        window.MANAGER_BASE_URL = '<?php echo $managerBaseUrl; ?>';
+        window.PLATFORM_BASE_URL = '<?php echo $platformBaseUrl; ?>';
+    </script>
     
     <style>
         body { 

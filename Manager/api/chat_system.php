@@ -37,9 +37,20 @@ try {
         
         // جلب قائمة المحادثات (Conversations List)
         if ($action === 'conversations') {
+            // التحقق من وجود جدول messages
+            $table_check = $conn->query("SHOW TABLES LIKE 'messages'");
+            if ($table_check->num_rows === 0) {
+                respond([
+                    'success' => true,
+                    'conversations' => [],
+                    'total' => 0,
+                    'message' => 'جدول الرسائل غير موجود بعد'
+                ]);
+            }
+            
             $sql = "
                 SELECT 
-                    m.message_id,
+                    m.id as message_id,
                     m.sender_id,
                     m.recipient_id,
                     m.body as message,
@@ -125,7 +136,7 @@ try {
             
             $sql = "
                 SELECT 
-                    m.message_id,
+                    m.id as message_id,
                     m.sender_id,
                     m.recipient_id,
                     m.body as message,

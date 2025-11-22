@@ -4,23 +4,33 @@
  * يوفر حماية متقدمة للجلسات
  */
 
+require_once __DIR__ . '/csrf.php';
+
 class SessionSecurity {
     /**
      * بدء جلسة آمنة مع إعدادات محسّنة
      */
     public static function startSecureSession() {
         if (session_status() === PHP_SESSION_ACTIVE) {
-            return; // الجلسة مفعلة بالفعل
+            generate_csrf_token(); // Ensure token exists even if session was already active
+            return;
         }
         
         // إعدادات أمان الجلسة
         ini_set('session.cookie_httponly', 1); // منع الوصول عبر JavaScript
         ini_set('session.use_only_cookies', 1); // استخدام cookies فقط
-        ini_set('session.cookie_secure', 0); // تعطيل HTTPS للتطوير المحلي (فعّل في الإنتاج)
-        ini_set('session.cookie_samesite', 'Lax'); // حماية CSRF إضافية
+        
+        // تفعيل Secure Cookie إذا كان الاتصال HTTPS
+        $isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        ini_set('session.cookie_secure', $isHttps ? 1 : 0);
+        
+        ini_set('session.cookie_samesite', 'Strict'); // حماية CSRF إضافية (تم التحديث من Lax)
         
         session_start();
         
+        // Generate CSRF token after starting the session
+        generate_csrf_token();
+
         // التحقق من Session Hijacking
         if (!self::validateSession()) {
             self::destroySession();

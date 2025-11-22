@@ -1,40 +1,21 @@
 <?php
-session_start();
+/**
+ * Courses Management API
+ * إدارة الدورات - محمي بنظام الحماية المركزي
+ */
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+require_once __DIR__ . '/api_auth.php';
+require_once __DIR__ . '/../../database/db.php';
 
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
-        http_response_code(500);
-        if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
-        }
-        $payload = [
-            'success' => false,
-            'message' => 'CRASH (Fatal Error): ' . $error['message'] . ' in ' . $error['file'] . ' on line ' . $error['line']
-        ];
-        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        if ($encoded === false) {
-            echo '{"success": false, "message": "Fatal Error & JSON encoding failed."}';
-        } else {
-            echo $encoded;
-        }
-    }
-});
+// التحقق من الصلاحيات (مدير أو مشرف فني فقط)
+$user = APIAuth::requireAuth(['manager', 'technical']);
+$user_id = $user['user_id'];
+$user_role = $user['role'];
 
-require_once __DIR__ . '/../../platform/db.php';
+// تطبيق Rate Limiting
+APIAuth::rateLimit(120, 60);
+
 header('Content-Type: application/json; charset=utf-8');
-
-// التحقق من الجلسة
-$user_id = $_SESSION['user_id'] ?? null;
-$user_role = $_SESSION['user_role'] ?? ($_SESSION['role'] ?? null);
-
-if (!$user_id || !in_array($user_role, ['manager','technical'])) {
-    echo json_encode(['success'=>false,'message'=>'غير مصرح لك'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
 
 $method = $_SERVER['REQUEST_METHOD'];
 

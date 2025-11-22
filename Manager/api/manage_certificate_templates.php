@@ -17,8 +17,14 @@ switch ($action) {
     case 'getAll':
         getAllTemplates($conn);
         break;
-    case 'create':
-        createTemplate($conn);
+    case 'get':
+        getTemplate($conn);
+        break;
+    case 'save': // Handles both create and update
+        saveTemplate($conn);
+        break;
+    case 'delete':
+        deleteTemplate($conn);
         break;
     default:
         http_response_code(400);
@@ -35,7 +41,26 @@ function getAllTemplates($conn) {
     echo json_encode(['success' => true, 'templates' => $templates]);
 }
 
-function createTemplate($conn) {
+function getTemplate($conn) {
+    $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+    if ($id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid ID']);
+        return;
+    }
+    
+    $stmt = $conn->prepare("SELECT * FROM certificate_templates WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        echo json_encode(['success' => true, 'template' => $row]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Template not found']);
+    }
+}
+
+function saveTemplate($conn) {
     $data = json_decode(file_get_contents('php://input'), true);
 
     if (empty($data['name']) || empty($data['template_json'])) {
@@ -46,18 +71,49 @@ function createTemplate($conn) {
 
     $name = $conn->real_escape_string($data['name']);
     $template_json = $conn->real_escape_string($data['template_json']);
+    $id = isset($data['id']) ? intval($data['id']) : 0;
 
-    $stmt = $conn->prepare("INSERT INTO certificate_templates (name, template_json) VALUES (?, ?)");
-    $stmt->bind_param("ss", $name, $template_json);
-
-    if ($stmt->execute()) {
-        $new_id = $stmt->insert_id;
-        echo json_encode(['success' => true, 'message' => 'Template created successfully.', 'id' => $new_id]);
+    if ($id > 0) {
+        // Update
+        $stmt = $conn->prepare("UPDATE certificate_templates SET name = ?, template_json = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->bind_param("ssi", $name, $template_json, $id);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Template updated successfully.', 'id' => $id]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to update template.']);
+        }
     } else {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Failed to create template.']);
+        // Create
+        $stmt = $conn->prepare("INSERT INTO certificate_templates (name, template_json) VALUES (?, ?)");
+        $stmt->bind_param("ss", $name, $template_json);
+        if ($stmt->execute()) {
+            $new_id = $stmt->insert_id;
+            echo json_encode(['success' => true, 'message' => 'Template created successfully.', 'id' => $new_id]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to create template.']);
+        }
     }
-    $stmt->close();
+}
+
+function deleteTemplate($conn) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id = isset($data['id']) ? intval($data['id']) : 0;
+
+    if ($id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid ID']);
+        return;
+    }
+
+    $stmt = $conn->prepare("DELETE FROM certificate_templates WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Template deleted successfully']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to delete template']);
+    }
 }
 
 $conn->close();

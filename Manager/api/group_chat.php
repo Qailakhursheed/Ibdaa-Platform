@@ -1,21 +1,14 @@
 <?php
 /**
- * نظام المراسلة - Messaging System
- * Group Chat Management API
- * 
- * إدارة المحادثات الجماعية:
- * - إنشاء مجموعة
- * - إضافة أعضاء
- * - إزالة أعضاء
- * - مغادرة المجموعة
- * - حذف المجموعة
- * - جلب معلومات المجموعة
+ * group_chat - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../database/db.php';
 

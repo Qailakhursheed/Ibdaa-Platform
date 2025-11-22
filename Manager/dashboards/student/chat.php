@@ -335,6 +335,17 @@ function startNewChat() {
     DashboardIntegration.ui.showToast('سيتم فتح قائمة المدربين قريباً', 'info');
 }
 
-// Initialize
-loadConversations();
+// Initialize with conditional loading
+if (typeof StudentFeatures !== 'undefined') {
+    loadConversations();
+} else {
+    console.log('Waiting for StudentFeatures to load...');
+    setTimeout(() => {
+        if (typeof StudentFeatures !== 'undefined') {
+            loadConversations();
+        } else {
+            console.error('StudentFeatures failed to load');
+        }
+    }, 1000);
+}
 </script>

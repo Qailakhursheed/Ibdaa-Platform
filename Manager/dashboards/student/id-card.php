@@ -1,30 +1,46 @@
+<?php
+// Load student data for ID card
+global $studentHelper, $userId, $userName, $userEmail;
+$gpaData = $studentHelper->getGPA();
+$courses = $studentHelper->getMyCourses();
+$studentId = str_pad($userId, 6, '0', STR_PAD_LEFT);
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">البطاقة الجامعية</h2>
-            <p class="text-slate-600 mt-1">بطاقة التعريف الرقمية</p>
+            <p class="text-slate-600 mt-1">بطاقة التعريف الرقمية - رقم <?php echo $studentId; ?></p>
         </div>
         <div class="flex gap-3">
-            <button onclick="downloadCard('pdf')" 
-                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold">
+            <button onclick="window.print()" 
+                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-md">
                 <i data-lucide="file-text" class="w-4 h-4 inline"></i>
                 تحميل PDF
             </button>
-            <button onclick="downloadCard('png')" 
-                class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold">
+            <button onclick="window.print()" 
+                class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold shadow-md">
                 <i data-lucide="image" class="w-4 h-4 inline"></i>
                 تحميل صورة
             </button>
         </div>
     </div>
 
-    <!-- ID Card Preview -->
+    <!-- ID Card Preview - PHP Rendered -->
     <div class="max-w-4xl mx-auto">
-        <div id="idCardPreview" class="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden shadow-2xl">
-            <div class="text-center py-12">
-                <i data-lucide="loader" class="w-12 h-12 mx-auto animate-spin text-slate-400 mb-3"></i>
-                <p class="text-slate-500">جاري تحميل البطاقة...</p>
+        <div id="idCardPreview" class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl overflow-hidden shadow-2xl p-8">
+            <div class="bg-white rounded-xl p-8">
+                <div class="flex items-center gap-8 mb-6">
+                    <div class="w-32 h-32 bg-slate-200 rounded-lg flex items-center justify-center">
+                        <i data-lucide="user" class="w-20 h-20 text-slate-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-3xl font-bold text-slate-800 mb-2"><?php echo htmlspecialchars($userName); ?></h3>
+                        <p class="text-slate-600 mb-1">رقم الطالب: <span class="font-bold text-amber-600"><?php echo $studentId; ?></span></p>
+                        <p class="text-slate-600">المعدل: <span class="font-bold text-emerald-600"><?php echo number_format($gpaData['gpa'], 2); ?></span></p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -226,6 +242,17 @@ async function downloadCard(format) {
     }
 }
 
-// Initialize
-loadIDCard();
+// Initialize with conditional loading
+if (typeof StudentFeatures !== 'undefined') {
+    loadIDCard();
+} else {
+    console.log('Waiting for StudentFeatures to load...');
+    setTimeout(() => {
+        if (typeof StudentFeatures !== 'undefined') {
+            loadIDCard();
+        } else {
+            console.error('StudentFeatures failed to load');
+        }
+    }, 1000);
+}
 </script>

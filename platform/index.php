@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/db.php';
+
 $announcements = [];
 try {
     $stmt = $conn->prepare("

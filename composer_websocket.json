@@ -1,0 +1,14 @@
+{
+    "name": "ibdaa-platform/websocket-server",
+    "description": "WebSocket Server for Real-time Notifications",
+    "type": "project",
+    "require": {
+        "cboden/ratchet": "^0.4",
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "IbdaaPlatform\\WebSocket\\": "websocket/"
+        }
+    }
+}

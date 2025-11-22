@@ -1,21 +1,15 @@
 <?php
 /**
- * ===============================================
- * 🚀 GIANT ASSIGNMENTS MANAGEMENT SYSTEM API
- * ===============================================
- * نظام عملاق لإدارة الواجبات مع ميزات متقدمة:
- * - إنشاء وتعديل وحذف واجبات
- * - تسليمات الطلاب مع رفع ملفات
- * - تصحيح تلقائي باستخدام AI
- * - كشف السرقة العلمية (Plagiarism Detection)
- * - معايير تقييم (Rubrics)
- * - عمليات دفعية (Bulk Operations)
- * - تصدير/استيراد (Export/Import)
- * - إحصائيات وتحليلات متقدمة
- * ===============================================
+ * manage_assignments - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 header('Content-Type: application/json; charset=utf-8');
 
 // Error handling

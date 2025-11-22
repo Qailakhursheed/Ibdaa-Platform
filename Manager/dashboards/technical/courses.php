@@ -1,36 +1,108 @@
 <?php
 /**
- * Technical Dashboard - Courses Management
- * إدارة الدورات التدريبية
+ * Technical Dashboard - Courses Management (Hybrid PHP System)
+ * إدارة الدورات التدريبية - نظام هجين محدث
+ * 
+ * This file is included in technical-dashboard.php
+ * $technicalHelper is already initialized
  */
 
-// Get courses from database
-$courses = [];
-try {
-    $stmt = $conn->query("SELECT c.*, 
-        u.full_name as trainer_name,
-        COUNT(DISTINCT e.id) as enrolled_count
-        FROM courses c
-        LEFT JOIN users u ON c.trainer_id = u.id
-        LEFT JOIN enrollments e ON c.course_id = e.course_id
-        GROUP BY c.course_id
-        ORDER BY c.created_at DESC");
-    $courses = $stmt->fetch_all(MYSQLI_ASSOC);
-} catch (Exception $e) {
-    error_log("Courses fetch error: " . $e->getMessage());
+// Get courses data
+$courses = $technicalHelper->getAllCourses();
+$stats = $technicalHelper->getStatistics();
+
+// Handle course actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        switch ($_POST['action']) {
+            case 'create':
+                $data = [
+                    'course_name' => $_POST['course_name'],
+                    'description' => $_POST['description'],
+                    'start_date' => $_POST['start_date'],
+                    'end_date' => $_POST['end_date'],
+                    'trainer_id' => $_POST['trainer_id'],
+                    'status' => $_POST['status'] ?? 'active'
+                ];
+                if ($technicalHelper->createCourse($data)) {
+                    $_SESSION['success_message'] = 'تم إنشاء الدورة بنجاح';
+                    header('Location: courses.php');
+                    exit;
+                }
+                break;
+                
+            case 'update':
+                $courseId = $_POST['course_id'];
+                $data = [
+                    'course_name' => $_POST['course_name'],
+                    'description' => $_POST['description'],
+                    'start_date' => $_POST['start_date'],
+                    'end_date' => $_POST['end_date'],
+                    'trainer_id' => $_POST['trainer_id'],
+                    'status' => $_POST['status']
+                ];
+                if ($technicalHelper->updateCourse($courseId, $data)) {
+                    $_SESSION['success_message'] = 'تم تحديث الدورة بنجاح';
+                    header('Location: courses.php');
+                    exit;
+                }
+                break;
+        }
+    }
 }
+
+// Get all trainers for dropdown
+$trainers = $technicalHelper->getAllTrainers();
 ?>
 
 <div class="mb-8">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-slate-800 mb-2">إدارة الدورات التدريبية</h1>
-            <p class="text-slate-600">مراجعة وإدارة جميع الدورات في النظام</p>
+            <h1 class="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+                <i data-lucide="book-open" class="w-8 h-8 text-sky-600"></i>
+                إدارة الدورات التدريبية
+            </h1>
+            <p class="text-slate-600">مراجعة وإدارة جميع الدورات في النظام - <?php echo count($courses); ?> دورة</p>
         </div>
         <button onclick="openAddCourseModal()" class="px-6 py-3 bg-sky-600 text-white rounded-xl hover:bg-sky-700 transition-colors font-semibold flex items-center gap-2 shadow-lg">
             <i data-lucide="plus" class="w-5 h-5"></i>
             إضافة دورة جديدة
         </button>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <i data-lucide="book-open" class="w-10 h-10 opacity-80"></i>
+            <span class="text-4xl font-bold"><?php echo $stats['total_courses']; ?></span>
+        </div>
+        <p class="text-sm opacity-90">إجمالي الدورات</p>
+    </div>
+    
+    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <i data-lucide="play-circle" class="w-10 h-10 opacity-80"></i>
+            <span class="text-4xl font-bold"><?php echo $stats['active_courses']; ?></span>
+        </div>
+        <p class="text-sm opacity-90">دورات نشطة</p>
+    </div>
+    
+    <div class="bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <i data-lucide="users" class="w-10 h-10 opacity-80"></i>
+            <span class="text-4xl font-bold"><?php echo $stats['total_students']; ?></span>
+        </div>
+        <p class="text-sm opacity-90">إجمالي الطلاب</p>
+    </div>
+    
+    <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <i data-lucide="user-check" class="w-10 h-10 opacity-80"></i>
+            <span class="text-4xl font-bold"><?php echo $stats['total_trainers']; ?></span>
+        </div>
+        <p class="text-sm opacity-90">المدربون</p>
     </div>
 </div>
 
@@ -42,128 +114,104 @@ try {
             <div class="relative">
                 <i data-lucide="search" class="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                 <input type="text" id="searchCourses" placeholder="ابحث عن دورة..." 
-                    class="w-full pr-10 pl-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                    class="w-full pr-10 pl-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    onkeyup="filterCourses()">
             </div>
         </div>
         <div>
             <label class="block text-sm font-semibold text-slate-700 mb-2">الحالة</label>
-            <select id="filterStatus" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+            <select id="filterStatus" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent" onchange="filterCourses()">
                 <option value="">جميع الحالات</option>
                 <option value="active">نشط</option>
-                <option value="pending">معلق</option>
                 <option value="completed">مكتمل</option>
-                <option value="cancelled">ملغي</option>
+                <option value="upcoming">قادم</option>
             </select>
         </div>
         <div>
             <label class="block text-sm font-semibold text-slate-700 mb-2">المدرب</label>
-            <select id="filterTrainer" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+            <select id="filterTrainer" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent" onchange="filterCourses()">
                 <option value="">جميع المدربين</option>
-                <?php
-                $trainers = $conn->query("SELECT id, full_name FROM users WHERE role = 'trainer' ORDER BY full_name");
-                while ($trainer = $trainers->fetch_assoc()) {
-                    echo '<option value="' . $trainer['id'] . '">' . htmlspecialchars($trainer['full_name']) . '</option>';
-                }
-                ?>
+                <?php foreach ($trainers as $trainer): ?>
+                    <option value="<?php echo $trainer['user_id']; ?>"><?php echo htmlspecialchars($trainer['full_name']); ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
-        <div class="flex items-end">
-            <button onclick="applyFilters()" class="w-full px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-semibold">
-                تطبيق الفلاتر
-            </button>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">الترتيب</label>
+            <select id="sortBy" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent" onchange="filterCourses()">
+                <option value="date_desc">الأحدث أولاً</option>
+                <option value="date_asc">الأقدم أولاً</option>
+                <option value="name_asc">الاسم (أ-ي)</option>
+                <option value="students_desc">عدد الطلاب</option>
+            </select>
         </div>
     </div>
 </div>
 
 <!-- Courses Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="coursesGrid">
+<div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <?php if (empty($courses)): ?>
-        <div class="col-span-full text-center py-16">
-            <i data-lucide="inbox" class="w-16 h-16 mx-auto text-slate-300 mb-4"></i>
-            <h3 class="text-xl font-bold text-slate-800 mb-2">لا توجد دورات بعد</h3>
-            <p class="text-slate-500 mb-6">ابدأ بإضافة دورة تدريبية جديدة</p>
+        <div class="col-span-full text-center py-16 bg-white rounded-xl shadow-lg">
+            <i data-lucide="book-open" class="w-16 h-16 mx-auto text-slate-300 mb-4"></i>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">لا توجد دورات</h3>
+            <p class="text-slate-500 mb-6">ابدأ بإضافة دورة جديدة</p>
             <button onclick="openAddCourseModal()" class="px-6 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors">
                 إضافة دورة الآن
             </button>
         </div>
     <?php else: ?>
-        <?php foreach ($courses as $course): ?>
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow course-card" 
-                 data-status="<?php echo $course['status']; ?>" 
+        <?php foreach ($courses as $course): 
+            $statusColors = [
+                'active' => 'bg-emerald-100 text-emerald-700',
+                'completed' => 'bg-slate-100 text-slate-700',
+                'upcoming' => 'bg-amber-100 text-amber-700'
+            ];
+            $statusNames = [
+                'active' => 'نشط',
+                'completed' => 'مكتمل',
+                'upcoming' => 'قادم'
+            ];
+        ?>
+            <div class="course-card bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden" 
+                 data-course-name="<?php echo strtolower($course['course_name']); ?>"
+                 data-status="<?php echo $course['status']; ?>"
                  data-trainer="<?php echo $course['trainer_id']; ?>">
-                <!-- Course Image -->
-                <div class="relative h-48 bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center">
-                    <?php if (!empty($course['cover_image'])): ?>
-                        <img src="<?php echo htmlspecialchars($course['cover_image']); ?>" 
-                             alt="<?php echo htmlspecialchars($course['title']); ?>" 
-                             class="w-full h-full object-cover">
-                    <?php else: ?>
-                        <i data-lucide="book-open" class="w-16 h-16 text-white opacity-50"></i>
-                    <?php endif; ?>
-                    
-                    <!-- Status Badge -->
-                    <span class="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold
-                        <?php 
-                        echo $course['status'] === 'active' ? 'bg-emerald-500 text-white' : 
-                             ($course['status'] === 'pending' ? 'bg-amber-500 text-white' : 
-                             ($course['status'] === 'completed' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'));
-                        ?>">
-                        <?php 
-                        echo $course['status'] === 'active' ? 'نشط' : 
-                             ($course['status'] === 'pending' ? 'معلق' : 
-                             ($course['status'] === 'completed' ? 'مكتمل' : 'ملغي'));
-                        ?>
-                    </span>
+                <div class="bg-gradient-to-br from-sky-500 to-blue-600 p-6 text-white">
+                    <div class="flex items-start justify-between mb-4">
+                        <span class="px-3 py-1 <?php echo $statusColors[$course['status']] ?? 'bg-slate-100 text-slate-700'; ?> rounded-full text-xs font-semibold">
+                            <?php echo $statusNames[$course['status']] ?? $course['status']; ?>
+                        </span>
+                        <i data-lucide="book-open" class="w-8 h-8 opacity-80"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2"><?php echo htmlspecialchars($course['course_name']); ?></h3>
+                    <p class="text-sm opacity-90 line-clamp-2"><?php echo htmlspecialchars($course['description'] ?? ''); ?></p>
                 </div>
                 
-                <!-- Course Content -->
                 <div class="p-6">
-                    <h3 class="text-xl font-bold text-slate-800 mb-2 line-clamp-2"><?php echo htmlspecialchars($course['title']); ?></h3>
-                    <p class="text-slate-600 text-sm mb-4 line-clamp-3"><?php echo htmlspecialchars($course['short_desc'] ?? $course['description'] ?? 'لا يوجد وصف'); ?></p>
-                    
-                    <!-- Course Meta -->
-                    <div class="flex items-center gap-4 text-sm text-slate-500 mb-4">
-                        <span class="flex items-center gap-1">
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center gap-2 text-slate-600">
                             <i data-lucide="user" class="w-4 h-4"></i>
-                            <?php echo htmlspecialchars($course['trainer_name'] ?? 'لم يحدد'); ?>
-                        </span>
-                        <span class="flex items-center gap-1">
+                            <span class="text-sm"><?php echo htmlspecialchars($course['trainer_name']); ?></span>
+                        </div>
+                        <div class="flex items-center gap-2 text-slate-600">
                             <i data-lucide="users" class="w-4 h-4"></i>
-                            <?php echo $course['enrolled_count']; ?> طالب
-                        </span>
-                    </div>
-                    
-                    <div class="flex items-center gap-4 text-sm text-slate-500 mb-4">
-                        <span class="flex items-center gap-1">
+                            <span class="text-sm"><?php echo $course['students_count']; ?> طالب</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-slate-600">
                             <i data-lucide="calendar" class="w-4 h-4"></i>
-                            <?php echo date('Y/m/d', strtotime($course['start_date'] ?? $course['created_at'])); ?>
-                        </span>
-                        <span class="flex items-center gap-1 font-semibold text-emerald-600">
-                            <i data-lucide="tag" class="w-4 h-4"></i>
-                            <?php echo number_format($course['price'] ?? 0); ?> ريال
-                        </span>
+                            <span class="text-sm"><?php echo date('Y/m/d', strtotime($course['start_date'])); ?></span>
+                        </div>
                     </div>
                     
-                    <!-- Action Buttons -->
-                    <div class="flex items-center gap-2 pt-4 border-t border-slate-200">
+                    <div class="flex gap-2">
                         <button onclick="viewCourse(<?php echo $course['course_id']; ?>)" 
-                            class="flex-1 px-4 py-2 bg-sky-50 text-sky-600 rounded-lg hover:bg-sky-100 transition-colors font-semibold text-sm">
-                            عرض التفاصيل
+                            class="flex-1 px-4 py-2 bg-sky-50 text-sky-600 rounded-lg hover:bg-sky-100 transition-colors text-sm font-semibold">
+                            عرض
                         </button>
                         <button onclick="editCourse(<?php echo $course['course_id']; ?>)" 
-                            class="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
-                            <i data-lucide="edit" class="w-5 h-5"></i>
+                            class="flex-1 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-semibold">
+                            تعديل
                         </button>
-                        <?php if ($course['status'] === 'pending'): ?>
-                        <button onclick="approveCourse(<?php echo $course['course_id']; ?>)" 
-                            class="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" title="الموافقة">
-                            <i data-lucide="check" class="w-5 h-5"></i>
-                        </button>
-                        <button onclick="rejectCourse(<?php echo $course['course_id']; ?>)" 
-                            class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="الرفض">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -171,98 +219,138 @@ try {
     <?php endif; ?>
 </div>
 
-<script>
-lucide.createIcons();
-
-// Search functionality
-document.getElementById('searchCourses')?.addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const cards = document.querySelectorAll('.course-card');
-    
-    cards.forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        const description = card.querySelector('p').textContent.toLowerCase();
+<!-- Add Course Modal -->
+<div id="addCourseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="bg-gradient-to-r from-sky-600 to-blue-600 text-white p-6 rounded-t-2xl">
+            <h2 class="text-2xl font-bold">إضافة دورة جديدة</h2>
+        </div>
         
-        if (title.includes(searchTerm) || description.includes(searchTerm)) {
-            card.style.display = 'block';
+        <form method="POST" class="p-6">
+            <input type="hidden" name="action" value="create">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">اسم الدورة *</label>
+                    <input type="text" name="course_name" required
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">الوصف</label>
+                    <textarea name="description" rows="3"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">تاريخ البدء *</label>
+                        <input type="date" name="start_date" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">تاريخ الانتهاء *</label>
+                        <input type="date" name="end_date" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">المدرب *</label>
+                    <select name="trainer_id" required
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                        <option value="">اختر المدرب</option>
+                        <?php foreach ($trainers as $trainer): ?>
+                            <option value="<?php echo $trainer['user_id']; ?>"><?php echo htmlspecialchars($trainer['full_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">الحالة</label>
+                    <select name="status"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                        <option value="upcoming">قادم</option>
+                        <option value="active">نشط</option>
+                        <option value="completed">مكتمل</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 px-6 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-semibold">
+                    إضافة الدورة
+                </button>
+                <button type="button" onclick="closeAddCourseModal()" class="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-semibold">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddCourseModal() {
+    document.getElementById('addCourseModal').classList.remove('hidden');
+}
+
+function closeAddCourseModal() {
+    document.getElementById('addCourseModal').classList.add('hidden');
+}
+
+function filterCourses() {
+    const search = document.getElementById('searchCourses').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value;
+    const trainer = document.getElementById('filterTrainer').value;
+    const sortBy = document.getElementById('sortBy').value;
+    
+    const cards = Array.from(document.querySelectorAll('.course-card'));
+    
+    // Filter
+    cards.forEach(card => {
+        const name = card.dataset.courseName;
+        const cardStatus = card.dataset.status;
+        const cardTrainer = card.dataset.trainer;
+        
+        const matchSearch = !search || name.includes(search);
+        const matchStatus = !status || cardStatus === status;
+        const matchTrainer = !trainer || cardTrainer === trainer;
+        
+        if (matchSearch && matchStatus && matchTrainer) {
+            card.style.display = '';
         } else {
             card.style.display = 'none';
         }
     });
-});
-
-// Filter functionality
-function applyFilters() {
-    const status = document.getElementById('filterStatus').value;
-    const trainer = document.getElementById('filterTrainer').value;
-    const cards = document.querySelectorAll('.course-card');
     
-    cards.forEach(card => {
-        const cardStatus = card.dataset.status;
-        const cardTrainer = card.dataset.trainer;
-        
-        const statusMatch = !status || cardStatus === status;
-        const trainerMatch = !trainer || cardTrainer === trainer;
-        
-        card.style.display = statusMatch && trainerMatch ? 'block' : 'none';
+    // Sort
+    const container = document.getElementById('coursesContainer');
+    cards.sort((a, b) => {
+        switch(sortBy) {
+            case 'name_asc':
+                return a.dataset.courseName.localeCompare(b.dataset.courseName);
+            default:
+                return 0;
+        }
     });
+    
+    cards.forEach(card => container.appendChild(card));
 }
 
-// Course actions
 function viewCourse(courseId) {
-    window.location.href = `?page=courses&view=${courseId}`;
+    window.location.href = `course_details.php?id=${courseId}`;
 }
 
 function editCourse(courseId) {
-    window.location.href = `?page=courses&edit=${courseId}`;
+    // Will implement edit modal
+    alert('تحرير الدورة #' + courseId);
 }
 
-async function approveCourse(courseId) {
-    if (!confirm('هل أنت متأكد من الموافقة على هذه الدورة؟')) return;
-    
-    try {
-        const response = await fetch('../api/courses.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'approve', course_id: courseId })
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-            DashboardIntegration.ui.showToast('تمت الموافقة على الدورة بنجاح', 'success');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            throw new Error(data.message);
-        }
-    } catch (error) {
-        DashboardIntegration.ui.showToast('فشلت الموافقة على الدورة', 'error');
-    }
-}
+lucide.createIcons();
 
-async function rejectCourse(courseId) {
-    const reason = prompt('يرجى إدخال سبب الرفض:');
-    if (!reason) return;
-    
-    try {
-        const response = await fetch('../api/courses.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'reject', course_id: courseId, reason })
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-            DashboardIntegration.ui.showToast('تم رفض الدورة', 'success');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            throw new Error(data.message);
-        }
-    } catch (error) {
-        DashboardIntegration.ui.showToast('فشل رفض الدورة', 'error');
-    }
-}
-
-function openAddCourseModal() {
-    DashboardIntegration.ui.showToast('سيتم فتح نموذج إضافة دورة قريباً', 'info');
-}
+<?php if (isset($_SESSION['success_message'])): ?>
+    alert('<?php echo $_SESSION['success_message']; ?>');
+    <?php unset($_SESSION['success_message']); ?>
+<?php endif; ?>
 </script>

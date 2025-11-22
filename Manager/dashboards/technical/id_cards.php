@@ -5,7 +5,7 @@
  * Features: Create, Display, Download, Email, WhatsApp
  */
 
-// Get ID Cards statistics
+// Get ID Cards statistics from users table
 $cardsStats = [
     'total_cards' => 0,
     'active_cards' => 0,
@@ -14,27 +14,31 @@ $cardsStats = [
 ];
 
 try {
-    // Total Cards
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM id_cards");
+    // Total Cards (all users who can have ID cards)
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE role IN ('student', 'trainer')");
     $stmt->execute();
-    $cardsStats['total_cards'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $result = $stmt->get_result();
+    $cardsStats['total_cards'] = $result->fetch_assoc()['total'];
     
-    // Active Cards
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM id_cards WHERE status = 'active' AND expiry_date > NOW()");
+    // Active Cards (active users)
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE role IN ('student', 'trainer') AND status = 'active'");
     $stmt->execute();
-    $cardsStats['active_cards'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $result = $stmt->get_result();
+    $cardsStats['active_cards'] = $result->fetch_assoc()['total'];
     
-    // Expired Cards
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM id_cards WHERE expiry_date <= NOW()");
+    // Expired Cards (inactive users)
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE role IN ('student', 'trainer') AND status != 'active'");
     $stmt->execute();
-    $cardsStats['expired_cards'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $result = $stmt->get_result();
+    $cardsStats['expired_cards'] = $result->fetch_assoc()['total'];
     
-    // Pending Cards
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM id_cards WHERE status = 'pending'");
+    // Pending Cards (users without profile photo)
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE role IN ('student', 'trainer') AND (photo IS NULL OR photo = '')");
     $stmt->execute();
-    $cardsStats['pending_cards'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $result = $stmt->get_result();
+    $cardsStats['pending_cards'] = $result->fetch_assoc()['total'];
     
-} catch(PDOException $e) {
+} catch(Exception $e) {
     error_log("ID Cards Stats Error: " . $e->getMessage());
 }
 ?>
@@ -385,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load Cards
 async function loadCards(cardType = 'all', status = 'all', searchTerm = '') {
     try {
-        let url = '../../api/id_cards.php?action=get_all';
+        let url = '<?php echo $managerBaseUrl; ?>/api/id_cards.php?action=get_all';
         if (cardType !== 'all') url += `&card_type=${cardType}`;
         if (status !== 'all') url += `&status=${status}`;
         if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
@@ -586,11 +590,11 @@ async function handleCardTypeChange(cardType) {
     try {
         let apiUrl = '';
         if (cardType === 'student') {
-            apiUrl = '../../api/students.php?action=get_all';
+            apiUrl = '<?php echo $managerBaseUrl; ?>/api/students.php?action=get_all';
         } else if (cardType === 'trainer') {
-            apiUrl = '../../api/trainers.php?action=get_all';
+            apiUrl = '<?php echo $managerBaseUrl; ?>/api/trainers.php?action=get_all';
         } else if (cardType === 'staff') {
-            apiUrl = '../../api/staff.php?action=get_all';
+            apiUrl = '<?php echo $managerBaseUrl; ?>/api/staff.php?action=get_all';
         }
         
         const response = await fetch(apiUrl);
@@ -625,7 +629,7 @@ function closeCreateCardModal() {
 
 async function viewCard(cardId) {
     try {
-        const response = await fetch(`../../api/id_cards.php?action=get_details&card_id=${cardId}`);
+        const response = await fetch(`<?php echo $managerBaseUrl; ?>/api/id_cards.php?action=get_details&card_id=${cardId}`);
         const data = await response.json();
         
         if (data.success && data.data) {
@@ -726,7 +730,7 @@ document.getElementById('createCardForm')?.addEventListener('submit', async func
     formData.append('action', 'create_card');
     
     try {
-        const response = await fetch('../../api/id_cards.php', {
+        const response = await fetch('<?php echo $managerBaseUrl; ?>/api/id_cards.php', {
             method: 'POST',
             body: formData
         });
@@ -753,7 +757,7 @@ document.getElementById('sendEmailForm')?.addEventListener('submit', async funct
     formData.append('action', 'send_card_email');
     
     try {
-        const response = await fetch('../../api/id_cards.php', {
+        const response = await fetch('<?php echo $managerBaseUrl; ?>/api/id_cards.php', {
             method: 'POST',
             body: formData
         });
@@ -791,12 +795,12 @@ document.getElementById('sendWhatsAppForm')?.addEventListener('submit', async fu
 
 // Download Card
 function downloadCard(cardId) {
-    window.open(`../../api/id_cards.php?action=download&card_id=${cardId}`, '_blank');
+    window.open(`<?php echo $managerBaseUrl; ?>/api/id_cards.php?action=download&card_id=${cardId}`, '_blank');
 }
 
 // Print Card
 function printCard(cardId) {
-    window.open(`../../api/id_cards.php?action=print&card_id=${cardId}`, '_blank');
+    window.open(`<?php echo $managerBaseUrl; ?>/api/id_cards.php?action=print&card_id=${cardId}`, '_blank');
 }
 
 // Delete Card
@@ -804,7 +808,7 @@ async function deleteCard(cardId) {
     if (!confirm('هل أنت متأكد من حذف هذه البطاقة؟')) return;
     
     try {
-        const response = await fetch('../../api/id_cards.php', {
+        const response = await fetch('<?php echo $managerBaseUrl; ?>/api/id_cards.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: `action=delete_card&card_id=${cardId}`

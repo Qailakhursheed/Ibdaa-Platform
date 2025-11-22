@@ -1,25 +1,15 @@
 <?php
 /**
- * ═══════════════════════════════════════════════════════════════
- * ADVANCED AI-POWERED IMPORT API WITH STREAMING
- * واجهة استيراد مدعومة بالذكاء الاصطناعي مع البث المباشر
- * ═══════════════════════════════════════════════════════════════
- * Features:
- * - Streaming Progress Updates (Server-Sent Events)
- * - Parallel Processing
- * - OCR Support (Tesseract via CLI)
- * - PDF Processing
- * - Fuzzy Column Matching
- * - Data Quality Scoring
- * - Duplicate Detection
- * - Auto-Type Detection
- * ═══════════════════════════════════════════════════════════════
+ * ai_import_stream - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+
 set_time_limit(300); // 5 minutes for large imports
 
 require_once __DIR__ . '/../../database/db.php';

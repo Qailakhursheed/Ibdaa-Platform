@@ -1,0 +1,197 @@
+# ============================================
+# 🔐 SENSITIVE & SECURITY FILES
+# ============================================
+
+# Environment variables with credentials
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+
+# Configuration files with sensitive data
+includes/config.php
+platform/config.php
+api/config.php
+api-v2/config.php
+Mailer/config.php
+
+# Private keys and certificates
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+
+# ============================================
+# 📤 USER UPLOADS & DYNAMIC FILES
+# ============================================
+
+# User-uploaded files
+platform/uploads/ids/*
+platform/uploads/photos/*
+platform/uploads/documents/*
+platform/uploads/certificates/*
+api/uploads/*
+api-v2/uploads/*
+
+# Keep directory structure
+!platform/uploads/ids/.gitkeep
+!platform/uploads/photos/.gitkeep
+!platform/uploads/documents/.gitkeep
+!platform/uploads/certificates/.gitkeep
+!api/uploads/.gitkeep
+!api-v2/uploads/.gitkeep
+
+# Database files (production data)
+database/requests.json
+database/requests_backup_*.json
+database/users_*.json
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+
+# ============================================
+# 📦 DEPENDENCIES & VENDOR
+# ============================================
+
+vendor/
+platform/vendor/
+api/vendor/
+api-v2/vendor/
+node_modules/
+package-lock.json
+composer.lock
+
+# ============================================
+# 📝 LOGS & TEMPORARY FILES
+# ============================================
+
+logs/
+*.log
+error.log
+debug.log
+*.tmp
+*.temp
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# 🛠️ IDE & EDITOR FILES
+# ============================================
+
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.vscode
+.netbeans/
+.project
+.classpath
+*.iml
+.c9/
+*.sublime-settings
+
+# ============================================
+# 🔄 VERSION CONTROL & BACKUPS
+# ============================================
+
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+.git/objects/
+.git/refs/
+
+# ============================================
+# 🐍 PYTHON & VIRTUAL ENVIRONMENTS
+# ============================================
+
+.venv
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ============================================
+# 📊 DATABASE EXPORTS & BACKUPS
+# ============================================
+
+*.sql
+*.sql.gz
+*.sql.backup
+*.dump
+db_backup/
+backups/
+
+# Allow specific schema files for initialization
+!database/schema.sql
+!database/initial_setup.sql
+!database/migrations/*.sql
+!database/sample_data.sql
+
+# ============================================
+# 🖼️ CACHE FILES
+# ============================================
+
+cache/
+.cache/
+*.cache
+tmp/
+temp/
+
+# ============================================
+# 📱 SYSTEM & OS FILES
+# ============================================
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+.TemporaryItems
+desktop.ini
+$RECYCLE.BIN/
+
+# ============================================
+# 🚀 BUILD & DIST
+# ============================================
+
+dist/
+build/
+.next/
+out/
+*.min.js
+*.min.css
+
+# ============================================
+# 📧 EMAIL & TESTING
+# ============================================
+
+test_*.html
+test_notifications.html
+test_*.php
+*.eml
+
+# ============================================
+# 🖥️ LOCAL TESTING & DEPLOYMENT
+# ============================================
+
+.local/
+local_config.php
+php.ini
+apache_config/
+.htaccess_local

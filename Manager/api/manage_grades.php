@@ -1,30 +1,16 @@
 <?php
-session_start();
+/**
+ * Grades Management API
+ * إدارة الدرجات - محمي بنظام الحماية المركزي
+ */
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
-        http_response_code(500);
-        if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
-        }
-        $payload = [
-            'success' => false,
-            'message' => 'CRASH (Fatal Error): ' . $error['message'] . ' in ' . $error['file'] . ' on line ' . $error['line']
-        ];
-        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        if ($encoded === false) {
-            echo '{"success": false, "message": "Fatal Error & JSON encoding failed."}';
-        } else {
-            echo $encoded;
-        }
-    }
-});
-
+require_once __DIR__ . '/api_auth.php';
 require_once __DIR__ . '/../../database/db.php';
+
+// التحقق من الصلاحيات (مدراء ومدربين فقط)
+$user = APIAuth::requireAuth(['manager', 'technical', 'trainer']);
+APIAuth::rateLimit(120, 60);
+
 header('Content-Type: application/json; charset=utf-8');
 
 // التحقق من الصلاحيات - للمدراء والمدربين

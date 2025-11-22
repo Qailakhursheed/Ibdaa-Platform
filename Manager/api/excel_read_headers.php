@@ -1,13 +1,14 @@
 <?php
 /**
- * Smart Import - Step 1: Read Excel Headers
- * Reads the first row of uploaded Excel/CSV file and returns column headers
+ * excel_read_headers - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 
 register_shutdown_function(function() {
     $error = error_get_last();

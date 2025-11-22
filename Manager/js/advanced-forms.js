@@ -13,9 +13,24 @@
 // ==============================================
 // Constants & Configuration
 // ==============================================
-const API_BASE = window.location.origin + '/Manager/api/';
+const getBasePath = () => {
+    const path = window.location.pathname;
+    const match = path.match(/(.*?\/Ibdaa-Taiz)/);
+    return match ? match[1] : '';
+};
 
-const API_ENDPOINTS = {
+const basePath = getBasePath();
+const API_BASE = window.location.origin + basePath + '/Manager/api/';
+
+// تصحيح الأخطاء
+console.log('🔍 Advanced Forms - Base Path:', basePath);
+console.log('🔍 Advanced Forms - API BASE:', API_BASE);
+
+if (typeof window.API_ENDPOINTS === 'undefined') {
+    window.API_ENDPOINTS = {};
+}
+
+Object.assign(window.API_ENDPOINTS, {
     users: 'manage_users.php',
     finance: 'manage_finance.php',
     courses: 'manage_courses.php',
@@ -24,7 +39,7 @@ const API_ENDPOINTS = {
     requests: 'registration_requests.php',
     import: 'smart_import.php',
     idCards: 'id_cards_system.php'
-};
+});
 
 // ==============================================
 // Utility Functions

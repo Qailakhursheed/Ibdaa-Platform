@@ -82,6 +82,7 @@ try {
             // الصف الأول هو العناوين
             $headers = array_shift($rows);
             $headers = array_map('trim', $headers);
+            $total_rows = count($rows);
             
             // معالجة البيانات حسب النوع
             $results = [];
@@ -111,25 +112,37 @@ try {
                     respond(['success' => false, 'message' => 'نوع استيراد غير معروف'], 400);
             }
             
-            // حفظ سجل الاستيراد
-            $log_stmt = $conn->prepare("
-                INSERT INTO import_logs 
-                (imported_by, file_name, import_type, total_rows, success_rows, failed_rows, errors) 
+            // حفظ الملف في الأرشيف
+            $archive_dir = __DIR__ . '/../../uploads/imports/archive/';
+            if (!is_dir($archive_dir)) {
+                mkdir($archive_dir, 0755, true);
+            }
+            $archive_filename = date('Ymd_His_') . preg_replace('/[^a-zA-Z0-9._-]/', '', $file['name']);
+            $archive_path = $archive_dir . $archive_filename;
+            
+            // نقل الملف بدلاً من حذفه
+            if (file_exists($temp_file)) {
+                rename($temp_file, $archive_path);
+            }
+            $relative_path = 'uploads/imports/archive/' . $archive_filename;
+
+            // حفظ سجل الاستيراد في import_history
+            $status = ($failed_count > 0) ? ($success_count > 0 ? 'partial' : 'failed') : 'success';
+            
+            $hist_stmt = $conn->prepare("
+                INSERT INTO import_history 
+                (file_name, original_name, import_type, imported_by, records_count, status, file_path) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
-            $total_rows = count($rows);
-            $errors_json = json_encode($errors, JSON_UNESCAPED_UNICODE);
-            $log_stmt->bind_param('issiiis', $user_id, $file['name'], $import_type, $total_rows, $success_count, $failed_count, $errors_json);
-            $log_stmt->execute();
-            $import_id = $log_stmt->insert_id;
-            $log_stmt->close();
             
-            // حذف الملف المؤقت
-            unlink($temp_file);
+            $hist_stmt->bind_param('sssiiss', $archive_filename, $file['name'], $import_type, $user_id, $total_rows, $status, $relative_path);
+            $hist_stmt->execute();
+            $import_id = $hist_stmt->insert_id;
+            $hist_stmt->close();
             
             respond([
                 'success' => true,
-                'message' => "تم استيراد {$success_count} من {$total_rows} بنجاح",
+                'message' => "تم استيراد {$success_count} من {$total_rows} بنجاح. تم أرشفة الملف.",
                 'import_id' => $import_id,
                 'statistics' => [
                     'total' => $total_rows,
@@ -156,18 +169,18 @@ try {
         
         $stmt = $conn->prepare("
             SELECT 
-                il.import_id,
-                il.imported_by,
-                il.file_name,
-                il.import_type,
-                il.total_rows,
-                il.success_rows,
-                il.failed_rows,
-                il.created_at,
+                ih.id as import_id,
+                ih.imported_by,
+                ih.original_name as file_name,
+                ih.import_type,
+                ih.records_count as total_rows,
+                ih.status,
+                ih.imported_at as created_at,
+                ih.file_path,
                 u.full_name AS imported_by_name
-            FROM import_logs il
-            INNER JOIN users u ON il.imported_by = u.id
-            ORDER BY il.created_at DESC
+            FROM import_history ih
+            LEFT JOIN users u ON ih.imported_by = u.id
+            ORDER BY ih.imported_at DESC
             LIMIT ?
         ");
         $stmt->bind_param('i', $limit);
@@ -181,15 +194,47 @@ try {
                 'file_name' => $row['file_name'],
                 'import_type' => $row['import_type'],
                 'total_rows' => (int)$row['total_rows'],
-                'success_rows' => (int)$row['success_rows'],
-                'failed_rows' => (int)$row['failed_rows'],
+                'status' => $row['status'],
                 'created_at' => $row['created_at'],
-                'imported_by_name' => $row['imported_by_name']
+                'imported_by_name' => $row['imported_by_name'] ?? 'Unknown',
+                'has_file' => !empty($row['file_path']) && file_exists(__DIR__ . '/../../' . $row['file_path'])
             ];
         }
         
         $stmt->close();
         respond(['success' => true, 'history' => $history]);
+    }
+
+    // ==============================================
+    // GET: تحميل الملف المؤرشف
+    // ==============================================
+    if ($method === 'GET' && $action === 'download') {
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) respond(['success' => false, 'message' => 'معرف غير صحيح'], 400);
+
+        $stmt = $conn->prepare("SELECT file_path, original_name FROM import_history WHERE id = ?");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($row = $result->fetch_assoc()) {
+            $file_path = __DIR__ . '/../../' . $row['file_path'];
+            if (file_exists($file_path)) {
+                header('Content-Description: File Transfer');
+                header('Content-Type: application/octet-stream');
+                header('Content-Disposition: attachment; filename="' . $row['original_name'] . '"');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate');
+                header('Pragma: public');
+                header('Content-Length: ' . filesize($file_path));
+                readfile($file_path);
+                exit;
+            } else {
+                respond(['success' => false, 'message' => 'الملف غير موجود في الخادم'], 404);
+            }
+        } else {
+            respond(['success' => false, 'message' => 'السجل غير موجود'], 404);
+        }
     }
     
     respond(['success' => false, 'message' => 'إجراء غير معروف'], 400);

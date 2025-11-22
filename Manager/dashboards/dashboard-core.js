@@ -26,7 +26,9 @@ const API_ENDPOINTS = {
     analyticsData: '../api/get_analytics_data.php',
     notifications: '../api/get_notifications.php',
     studentData: '../api/get_student_data.php',
-    aiImages: '../api/ai_image_generator.php'
+    aiImages: '../api/ai_image_generator.php',
+    manageSettings: '../api/manage_settings.php',
+    smartImport: '../api/smart_import.php'
 };
 
 // Helper Functions

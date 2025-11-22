@@ -1,10 +1,15 @@
 <?php
 /**
- * 📊 Dynamic Grades Management System
- * Real-time grade updates with automatic notifications and certificate generation
+ * grades_system - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../platform/db.php';

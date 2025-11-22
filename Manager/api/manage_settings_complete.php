@@ -1,11 +1,15 @@
 <?php
 /**
- * API لإدارة إعدادات المنصة - نسخة كاملة
- * الإصدار: 2.0
- * الصلاحية: المدير فقط (manager)
+ * manage_settings_complete - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 require_once '../../database/db.php';
 header('Content-Type: application/json; charset=utf-8');
 

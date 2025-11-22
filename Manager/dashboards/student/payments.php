@@ -1,37 +1,52 @@
+<?php
+// Load payment data using StudentHelper
+global $studentHelper;
+$balance = $studentHelper->getAccountBalance();
+$paymentHistory = $studentHelper->getPaymentHistory();
+
+$currentBalance = $balance['balance'] ?? 0;
+$totalPaid = array_sum(array_column($paymentHistory, 'amount'));
+$remainingAmount = $currentBalance;
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">الحالة المالية</h2>
-            <p class="text-slate-600 mt-1">متابعة المدفوعات والرسوم الدراسية</p>
+            <p class="text-slate-600 mt-1">متابعة المدفوعات والرسوم الدراسية - <?php echo count($paymentHistory); ?> عملية</p>
         </div>
     </div>
 
-    <!-- Balance Summary -->
+    <!-- Balance Summary - PHP Data -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-gradient-to-br from-amber-600 to-orange-600 rounded-xl p-6 text-white">
+        <div class="bg-gradient-to-br from-amber-600 to-orange-600 rounded-xl p-6 text-white shadow-xl">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="wallet" class="w-8 h-8"></i>
+                <i data-lucide="wallet" class="w-10 h-10"></i>
                 <span class="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">الرصيد الحالي</span>
             </div>
-            <div class="text-3xl font-bold mb-2" id="currentBalance">0 ريال</div>
+            <div class="text-4xl font-bold mb-2"><?php echo number_format($currentBalance, 0); ?> ريال</div>
             <p class="text-amber-100 text-sm">إجمالي المبلغ المستحق</p>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="check-circle" class="w-8 h-8 text-emerald-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="paidAmount">0 ريال</span>
+                <i data-lucide="check-circle" class="w-10 h-10 text-emerald-600"></i>
+                <span class="text-3xl font-bold text-slate-800"><?php echo number_format($totalPaid, 0); ?> ريال</span>
             </div>
-            <p class="text-sm text-slate-600">المبلغ المدفوع</p>
+            <p class="text-sm text-slate-600 font-semibold">المبلغ المدفوع</p>
+            <p class="text-xs text-slate-500 mt-1"><?php echo count($paymentHistory); ?> دفعة</p>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg <?php echo $remainingAmount > 0 ? 'border-red-300' : 'border-emerald-300'; ?>">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="clock" class="w-8 h-8 text-red-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="remainingAmount">0 ريال</span>
+                <i data-lucide="<?php echo $remainingAmount > 0 ? 'clock' : 'check-circle-2'; ?>" class="w-10 h-10 <?php echo $remainingAmount > 0 ? 'text-red-600' : 'text-emerald-600'; ?>"></i>
+                <span class="text-3xl font-bold text-slate-800"><?php echo number_format($remainingAmount, 0); ?> ريال</span>
             </div>
-            <p class="text-sm text-slate-600">المبلغ المتبقي</p>
+            <p class="text-sm text-slate-600 font-semibold">المبلغ المتبقي</p>
+            <p class="text-xs <?php echo $remainingAmount > 0 ? 'text-red-500' : 'text-emerald-500'; ?> mt-1">
+                <?php echo $remainingAmount > 0 ? '⚠ يجب السداد' : '✓ مسدد بالكامل'; ?>
+            </p>
         </div>
     </div>
 
@@ -302,6 +317,17 @@ function filterPayments() {
     renderPayments(filtered);
 }
 
-// Initialize
-loadPayments();
+// Initialize with conditional loading
+if (typeof StudentFeatures !== 'undefined') {
+    loadPayments();
+} else {
+    console.log('Waiting for StudentFeatures to load...');
+    setTimeout(() => {
+        if (typeof StudentFeatures !== 'undefined') {
+            loadPayments();
+        } else {
+            console.error('StudentFeatures failed to load');
+        }
+    }, 1000);
+}
 </script>

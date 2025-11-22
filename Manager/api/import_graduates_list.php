@@ -1,33 +1,29 @@
 ﻿<?php
-session_start();
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+/**
+ * Import Graduates List API
+ * استيراد قائمة الخريجين - محمي بنظام الحماية المركزي
+ */
 
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
-        http_response_code(500);
-        if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
-        }
-        echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']], JSON_UNESCAPED_UNICODE);
-    }
-});
-
+require_once __DIR__ . '/api_auth.php';
 require_once __DIR__ . '/../../database/db.php';
+
+// التحقق من الصلاحيات (مدير أو مشرف فني)
+$user = APIAuth::requireAuth(['manager', 'technical']);
+$userId = $user['user_id'];
+$userRole = $user['role'];
+
+// Rate Limiting للاستيراد (عملية مكثفة)
+APIAuth::rateLimit(20, 60);
+
 header('Content-Type: application/json; charset=utf-8');
 
 function respond($payload, $status = 200) {
-    http_response_code($status);
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
-    exit;
-}
+    if ($payload['success'] ?? false) {
+        APIAuth::sendSuccess($payload);
+    } else {
+        APIAuth::sendError($payload['message'] ?? 'حدث خطأ', $status);
+    }
 
-$userId = $_SESSION['user_id'] ?? null;
-$userRole = $_SESSION['user_role'] ?? ($_SESSION['role'] ?? null);
-
-if (!$userId || !in_array($userRole, ['manager', 'technical'], true)) {
-    respond(['success' => false, 'message' => 'غير مصرح'], 403);
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

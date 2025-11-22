@@ -1,53 +1,79 @@
+<?php
+// Load assignments using TrainerHelper
+global $trainerHelper;
+$myCourses = $trainerHelper->getMyCourses();
+$selectedCourse = $_GET['course_id'] ?? null;
+$assignments = $trainerHelper->getCourseAssignments($selectedCourse);
+$totalAssignments = count($assignments);
+$needsGrading = array_sum(array_column($assignments, 'total_submissions')) - array_sum(array_column($assignments, 'graded_submissions'));
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">الواجبات</h2>
-            <p class="text-slate-600 mt-1">إنشاء وإدارة واجبات الطلاب</p>
+            <p class="text-slate-600 mt-1">إنشاء وإدارة واجبات الطلاب - <?php echo $totalAssignments; ?> واجب</p>
         </div>
-        <button onclick="createNewAssignment()" 
-            class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold flex items-center gap-2">
-            <i data-lucide="plus" class="w-5 h-5"></i>
-            إنشاء واجب جديد
-        </button>
     </div>
 
-    <!-- Statistics -->
+    <!-- Statistics - PHP -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl p-6 shadow-xl">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="clipboard-list" class="w-8 h-8 text-emerald-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="totalAssignments">0</span>
+                <i data-lucide="clipboard-list" class="w-10 h-10"></i>
+                <span class="text-4xl font-bold"><?php echo $totalAssignments; ?></span>
             </div>
-            <p class="text-sm text-slate-600">إجمالي الواجبات</p>
+            <p class="text-sm opacity-90 font-semibold">إجمالي الواجبات</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="clock" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="pendingAssignments">0</span>
+                <i data-lucide="clock" class="w-10 h-10 text-amber-600"></i>
+                <span class="text-4xl font-bold text-slate-800"><?php echo array_sum(array_column($assignments, 'total_submissions')); ?></span>
             </div>
-            <p class="text-sm text-slate-600">في انتظار التسليم</p>
+            <p class="text-sm text-slate-600 font-semibold">مجموع التسليمات</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="check-circle" class="w-8 h-8 text-emerald-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="submittedAssignments">0</span>
+                <i data-lucide="check-circle" class="w-10 h-10 text-emerald-600"></i>
+                <span class="text-4xl font-bold text-slate-800"><?php echo array_sum(array_column($assignments, 'graded_submissions')); ?></span>
             </div>
-            <p class="text-sm text-slate-600">تم التسليم</p>
+            <p class="text-sm text-slate-600 font-semibold">تم التقييم</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg <?php echo $needsGrading > 0 ? 'border-amber-300' : ''; ?>">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="edit" class="w-8 h-8 text-blue-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="needsGrading">0</span>
+                <i data-lucide="edit" class="w-10 h-10 text-blue-600"></i>
+                <span class="text-4xl font-bold text-slate-800"><?php echo $needsGrading; ?></span>
             </div>
-            <p class="text-sm text-slate-600">يحتاج تقييم</p>
+            <p class="text-sm text-slate-600 font-semibold">يحتاج تقييم</p>
         </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Course Selection -->
+    <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <input type="hidden" name="page" value="assignments">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    <i data-lucide="book-open" class="w-4 h-4 inline mr-1"></i>
+                    اختر الدورة
+                </label>
+                <select name="course_id" class="w-full px-4 py-3 border-2 border-slate-300 rounded-lg" onchange="this.form.submit()">
+                    <option value="">جميع الدورات</option>
+                    <?php foreach ($myCourses as $course): ?>
+                        <option value="<?php echo $course['course_id']; ?>" <?php echo $selectedCourse == $course['course_id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($course['course_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Assignments List -->
     <div class="bg-white border border-slate-200 rounded-xl p-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
@@ -344,7 +370,16 @@ function searchAssignments() {
     renderAssignments(filtered);
 }
 
-// Initialize
-loadCourses();
-loadAssignments();
+// Initialize - Wait for libraries
+if (typeof TrainerFeatures !== 'undefined') {
+    loadCourses();
+    loadAssignments();
+} else {
+    setTimeout(() => {
+        if (typeof TrainerFeatures !== 'undefined') {
+            loadCourses();
+            loadAssignments();
+        }
+    }, 1000);
+}
 </script>

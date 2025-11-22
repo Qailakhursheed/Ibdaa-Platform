@@ -1,10 +1,15 @@
 <?php
 /**
- * Student Assignments API
- * Handles student assignments and submissions
+ * student_assignments - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../config/database.php';
 

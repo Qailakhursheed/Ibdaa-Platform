@@ -1,17 +1,15 @@
 <?php
 /**
- * ================================================
- * API: إدارة الإعدادات (Settings CRUD)
- * ================================================
- * الهدف: السماح للمدير بتعديل إعدادات النظام
- * الصلاحية: manager فقط
- * ================================================
+ * manage_settings - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 register_shutdown_function(function() {

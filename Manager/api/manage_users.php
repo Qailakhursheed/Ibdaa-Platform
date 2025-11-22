@@ -1,30 +1,18 @@
 <?php
-session_start();
+/**
+ * Users Management API
+ * إدارة المستخدمين - محمي بنظام الحماية المركزي
+ */
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
-        http_response_code(500);
-        if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
-        }
-        $payload = [
-            'success' => false,
-            'message' => 'CRASH (Fatal Error): ' . $error['message'] . ' in ' . $error['file'] . ' on line ' . $error['line']
-        ];
-        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        if ($encoded === false) {
-            echo '{"success": false, "message": "Fatal Error & JSON encoding failed."}';
-        } else {
-            echo $encoded;
-        }
-    }
-});
-
+require_once __DIR__ . '/api_auth.php';
 require_once __DIR__ . '/../../database/db.php';
+
+// التحقق من الصلاحيات (مدير أو مشرف فني فقط)
+$user = APIAuth::requireAuth(['manager', 'technical']);
+
+// تطبيق Rate Limiting
+APIAuth::rateLimit(120, 60);
+
 header('Content-Type: application/json; charset=utf-8');
 
 function respond(array $payload, int $status = 200): void {
@@ -75,7 +63,7 @@ try {
             }
 
             $stmt = $conn->prepare(
-                "SELECT id, full_name, full_name_en, email, phone, role, dob, gender, governorate, district, sub_district, address, locations, profile_picture, verified, created_at, updated_at
+                "SELECT id, full_name, full_name_en, email, phone, role, dob, governorate, district, address, locations, profile_picture, verified, created_at, updated_at
                  FROM users WHERE id = ? LIMIT 1"
             );
             $stmt->bind_param('i', $targetId);
@@ -92,7 +80,7 @@ try {
         }
 
         $roleFilter = $_GET['role'] ?? 'all';
-        $baseQuery = "SELECT id, full_name, full_name_en, email, phone, role, dob, gender, governorate, district, sub_district, address, created_at, verified FROM users";
+        $baseQuery = "SELECT id, full_name, full_name_en, email, phone, role, dob, governorate, district, address, created_at, verified FROM users";
 
         if ($roleFilter !== 'all') {
             $roleFilter = sanitize_role($roleFilter);
@@ -174,11 +162,11 @@ try {
             $verified = isset($data['verified']) ? (int) (bool) $data['verified'] : 1;
 
             $stmt = $conn->prepare(
-                'INSERT INTO users (full_name, full_name_en, email, phone, password_hash, role, dob, gender, governorate, district, sub_district, address, locations, profile_picture, verified)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO users (full_name, full_name_en, email, phone, password_hash, role, dob, governorate, district, address, locations, profile_picture, verified)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->bind_param(
-                'ssssssssssssssi',
+                'ssssssssssssi',
                 $fullName,
                 $fullNameEn,
                 $email,
@@ -186,10 +174,8 @@ try {
                 $passwordHash,
                 $role,
                 $dob,
-                $gender,
                 $governorate,
                 $district,
-                $subDistrict,
                 $address,
                 $locations,
                 $profilePicture,
@@ -264,16 +250,14 @@ try {
                 'phone = ?',
                 'role = ?',
                 'dob = ?',
-                'gender = ?',
                 'governorate = ?',
                 'district = ?',
-                'sub_district = ?',
                 'address = ?',
                 'locations = ?',
                 'profile_picture = ?',
                 'verified = ?'
             ];
-            $types = 'sssssssssssssi';
+            $types = 'sssssssssssi';
             $params = [
                 $fullName,
                 $fullNameEn,
@@ -281,10 +265,8 @@ try {
                 $phone,
                 $role,
                 $dob,
-                $gender,
                 $governorate,
                 $district,
-                $subDistrict,
                 $address,
                 $locations,
                 $profilePicture,

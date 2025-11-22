@@ -1,53 +1,84 @@
+<?php
+// Load materials using TrainerHelper
+global $trainerHelper;
+$myCourses = $trainerHelper->getMyCourses();
+$selectedCourse = $_GET['course_id'] ?? null;
+$materials = [];
+if ($selectedCourse) {
+    $materials = $trainerHelper->getCourseMaterials($selectedCourse);
+}
+$totalMaterials = count($materials);
+$pdfCount = count(array_filter($materials, fn($m) => $m['file_type'] === 'pdf'));
+$videoCount = count(array_filter($materials, fn($m) => in_array($m['file_type'], ['video', 'mp4', 'avi'])));
+$otherCount = $totalMaterials - $pdfCount - $videoCount;
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">المواد التعليمية</h2>
-            <p class="text-slate-600 mt-1">رفع وإدارة المواد التدريبية</p>
+            <p class="text-slate-600 mt-1">رفع وإدارة المواد التدريبية - <?php echo $totalMaterials; ?> مادة</p>
         </div>
-        <button onclick="showUploadModal()" 
-            class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold flex items-center gap-2">
-            <i data-lucide="upload" class="w-5 h-5"></i>
-            رفع مادة جديدة
-        </button>
     </div>
 
-    <!-- Statistics -->
+    <!-- Statistics - PHP -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl p-6 shadow-xl">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="folder" class="w-8 h-8 text-emerald-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="totalMaterials">0</span>
+                <i data-lucide="folder" class="w-10 h-10"></i>
+                <span class="text-4xl font-bold"><?php echo $totalMaterials; ?></span>
             </div>
-            <p class="text-sm text-slate-600">إجمالي المواد</p>
+            <p class="text-sm opacity-90 font-semibold">إجمالي المواد</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="file-text" class="w-8 h-8 text-blue-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="pdfCount">0</span>
+                <i data-lucide="file-text" class="w-10 h-10 text-blue-600"></i>
+                <span class="text-4xl font-bold text-slate-800"><?php echo $pdfCount; ?></span>
             </div>
-            <p class="text-sm text-slate-600">ملفات PDF</p>
+            <p class="text-sm text-slate-600 font-semibold">ملفات PDF</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="video" class="w-8 h-8 text-purple-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="videoCount">0</span>
+                <i data-lucide="video" class="w-10 h-10 text-purple-600"></i>
+                <span class="text-4xl font-bold text-slate-800"><?php echo $videoCount; ?></span>
             </div>
-            <p class="text-sm text-slate-600">مقاطع فيديو</p>
+            <p class="text-sm text-slate-600 font-semibold">مقاطع فيديو</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="image" class="w-8 h-8 text-pink-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="otherCount">0</span>
+                <i data-lucide="image" class="w-10 h-10 text-pink-600"></i>
+                <span class="text-4xl font-bold text-slate-800"><?php echo $otherCount; ?></span>
             </div>
-            <p class="text-sm text-slate-600">أخرى</p>
+            <p class="text-sm text-slate-600 font-semibold">أخرى</p>
         </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Course Selection -->
+    <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <input type="hidden" name="page" value="materials">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    <i data-lucide="book-open" class="w-4 h-4 inline mr-1"></i>
+                    اختر الدورة
+                </label>
+                <select name="course_id" class="w-full px-4 py-3 border-2 border-slate-300 rounded-lg" onchange="this.form.submit()">
+                    <option value="">جميع الدورات</option>
+                    <?php foreach ($myCourses as $course): ?>
+                        <option value="<?php echo $course['course_id']; ?>" <?php echo $selectedCourse == $course['course_id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($course['course_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Materials List -->
     <div class="bg-white border border-slate-200 rounded-xl p-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
@@ -309,7 +340,16 @@ function searchMaterials() {
     renderMaterials(filtered);
 }
 
-// Initialize
-loadCourses();
-loadMaterials();
+// Initialize - Wait for libraries
+if (typeof TrainerFeatures !== 'undefined') {
+    loadCourses();
+    loadMaterials();
+} else {
+    setTimeout(() => {
+        if (typeof TrainerFeatures !== 'undefined') {
+            loadCourses();
+            loadMaterials();
+        }
+    }, 1000);
+}
 </script>

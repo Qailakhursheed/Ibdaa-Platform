@@ -1,26 +1,36 @@
+<?php
+// Load schedule data using StudentHelper
+global $studentHelper;
+$schedule = $studentHelper->getMySchedule();
+$totalClasses = count($schedule);
+$currentWeek = date('W');
+$weekStart = date('Y-m-d', strtotime('sunday this week'));
+$weekEnd = date('Y-m-d', strtotime('thursday this week'));
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">الجدول الدراسي</h2>
-            <p class="text-slate-600 mt-1">جدول المحاضرات والدروس الأسبوعية</p>
+            <p class="text-slate-600 mt-1">جدول المحاضرات والدروس الأسبوعية - <?php echo $totalClasses; ?> محاضرة</p>
         </div>
-        <button onclick="exportSchedule()" 
-            class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold">
+        <button onclick="window.print()" 
+            class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold shadow-md">
             <i data-lucide="download" class="w-4 h-4 inline"></i>
             تصدير الجدول
         </button>
     </div>
 
-    <!-- Current Week Info -->
-    <div class="bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl p-6 text-white">
+    <!-- Current Week Info - PHP Data -->
+    <div class="bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl p-6 text-white shadow-xl">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold mb-2">الأسبوع الدراسي الحالي</h3>
-                <p class="text-amber-100" id="currentWeek">جاري التحميل...</p>
+                <p class="text-amber-100">الأسبوع <?php echo $currentWeek; ?> • <?php echo $weekStart; ?> إلى <?php echo $weekEnd; ?></p>
             </div>
             <div class="text-center">
-                <div class="text-4xl font-bold" id="totalClasses">0</div>
+                <div class="text-5xl font-bold"><?php echo $totalClasses; ?></div>
                 <p class="text-amber-100 mt-1">محاضرة هذا الأسبوع</p>
             </div>
         </div>
@@ -239,6 +249,17 @@ function exportSchedule() {
     DashboardIntegration.ui.showToast('سيتم تصدير الجدول قريباً', 'info');
 }
 
-// Initialize
-loadSchedule();
+// Initialize with conditional loading
+if (typeof StudentFeatures !== 'undefined') {
+    loadSchedule();
+} else {
+    console.log('Waiting for StudentFeatures to load...');
+    setTimeout(() => {
+        if (typeof StudentFeatures !== 'undefined') {
+            loadSchedule();
+        } else {
+            console.error('StudentFeatures failed to load');
+        }
+    }, 1000);
+}
 </script>

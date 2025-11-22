@@ -1,44 +1,58 @@
+<?php
+// Load assignments data using StudentHelper
+global $studentHelper;
+$allCourses = $studentHelper->getMyCourses();
+$allAssignments = $studentHelper->getMyAssignments(); // Get all assignments
+
+// Calculate statistics
+$totalAssignments = count($allAssignments);
+$pendingAssignments = count(array_filter($allAssignments, fn($a) => $a['status'] === 'pending'));
+$submittedAssignments = count(array_filter($allAssignments, fn($a) => $a['status'] === 'submitted'));
+$gradedAssignments = array_filter($allAssignments, fn($a) => isset($a['grade']) && $a['grade'] > 0);
+$avgGrade = count($gradedAssignments) > 0 ? array_sum(array_column($gradedAssignments, 'grade')) / count($gradedAssignments) : 0;
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">واجباتي</h2>
-            <p class="text-slate-600 mt-1">تسليم ومتابعة الواجبات الدراسية</p>
+            <p class="text-slate-600 mt-1">تسليم ومتابعة الواجبات الدراسية - <?php echo $totalAssignments; ?> واجب</p>
         </div>
     </div>
 
-    <!-- Statistics -->
+    <!-- Statistics - PHP Data -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
                 <i data-lucide="clipboard-list" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="totalAssignments">0</span>
+                <span class="text-3xl font-bold text-slate-800"><?php echo $totalAssignments; ?></span>
             </div>
-            <p class="text-sm text-slate-600">إجمالي الواجبات</p>
+            <p class="text-sm text-slate-600 font-semibold">إجمالي الواجبات</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg <?php echo $pendingAssignments > 0 ? 'border-red-300' : ''; ?>">
             <div class="flex items-center justify-between mb-4">
                 <i data-lucide="clock" class="w-8 h-8 text-red-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="pendingAssignments">0</span>
+                <span class="text-3xl font-bold text-slate-800"><?php echo $pendingAssignments; ?></span>
             </div>
-            <p class="text-sm text-slate-600">لم يتم تسليمه</p>
+            <p class="text-sm text-slate-600 font-semibold">لم يتم تسليمه</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl p-6 shadow-xl">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="check-circle" class="w-8 h-8 text-emerald-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="submittedAssignments">0</span>
+                <i data-lucide="check-circle" class="w-8 h-8"></i>
+                <span class="text-3xl font-bold"><?php echo $submittedAssignments; ?></span>
             </div>
-            <p class="text-sm text-slate-600">تم التسليم</p>
+            <p class="text-sm opacity-90 font-semibold">تم التسليم</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
                 <i data-lucide="star" class="w-8 h-8 text-blue-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="avgGrade">0</span>
+                <span class="text-3xl font-bold text-slate-800"><?php echo round($avgGrade, 1); ?></span>
             </div>
-            <p class="text-sm text-slate-600">متوسط الدرجات</p>
+            <p class="text-sm text-slate-600 font-semibold">متوسط الدرجات</p>
         </div>
     </div>
 
@@ -267,7 +281,19 @@ function searchAssignments() {
     renderAssignments(filtered);
 }
 
-// Initialize
-loadCourses();
-loadAssignments();
+// Initialize with conditional loading
+if (typeof StudentFeatures !== 'undefined') {
+    loadCourses();
+    loadAssignments();
+} else {
+    console.log('Waiting for StudentFeatures to load...');
+    setTimeout(() => {
+        if (typeof StudentFeatures !== 'undefined') {
+            loadCourses();
+            loadAssignments();
+        } else {
+            console.error('StudentFeatures failed to load');
+        }
+    }, 1000);
+}
 </script>

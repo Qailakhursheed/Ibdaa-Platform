@@ -1,0 +1,1140 @@
+<?php
+/**
+ * Manager Dashboard - FULL VERSION with All Features
+ * لوحة تحكم المدير العام - النسخة الكاملة مع جميع الوظائف
+ */
+
+require_once __DIR__ . '/shared-header.php';
+
+// التحقق من الصلاحية
+if ($userRole !== 'manager') {
+    header('Location: ' . $managerBaseUrl . '/login.php?error=access_denied');
+    exit;
+}
+
+// جلب الإحصائيات
+$stats = ['total_students' => 0, 'active_courses' => 0, 'total_revenue' => 0, 'certificates_issued' => 0];
+try {
+    $result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'student'");
+    if ($result) $stats['total_students'] = (int)$result->fetch_assoc()['count'];
+    
+    $result = $conn->query("SELECT COUNT(*) as count FROM courses WHERE status = 'active'");
+    if ($result) $stats['active_courses'] = (int)$result->fetch_assoc()['count'];
+    
+    $result = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'completed'");
+    if ($result) $stats['total_revenue'] = (float)$result->fetch_assoc()['total'];
+    
+    $result = $conn->query("SELECT COUNT(*) as count FROM enrollments WHERE certificate_issued = 1");
+    if ($result) $stats['certificates_issued'] = (int)$result->fetch_assoc()['count'];
+} catch (Exception $e) {
+    error_log("Error: " . $e->getMessage());
+}
+?>
+
+<div id="managerDashboard" class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-72 bg-white border-l border-slate-200 shadow-sm">
+        <div class="px-6 py-6 border-b border-slate-200 text-center">
+            <img src="<?php echo $platformBaseUrl; ?>/photos/Sh.jpg" alt="شعار منصة إبداع" class="mx-auto mb-3 w-16 h-16 rounded-full border-4 border-sky-500 shadow-sm">
+            <h1 class="text-2xl font-bold text-slate-800">منصة إبداع</h1>
+            <p class="text-sm text-slate-500 mt-1">لوحة المدير العام</p>
+        </div>
+        
+        <nav class="px-4 py-6 space-y-2 text-slate-700">
+            <!-- لوحة التحكم -->
+            <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 active" data-page="dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span>لوحة التحكم</span>
+            </a>
+
+            <!-- إدارة المستخدمين -->
+            <div class="sidebar-section">
+                <button class="sidebar-section-toggle w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-50" data-section="users">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="users-2" class="w-5 h-5"></i>
+                        <span>إدارة المستخدمين</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
+                </button>
+                <div class="sidebar-submenu hidden pl-8 mt-1 space-y-1">
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="trainees">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        <span>المتدربون</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="trainers">
+                        <i data-lucide="user-check" class="w-4 h-4"></i>
+                        <span>المدربون</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="graduates">
+                        <i data-lucide="award" class="w-4 h-4"></i>
+                        <span>ملف الخريجين</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- الدورات التدريبية -->
+            <div class="sidebar-section">
+                <button class="sidebar-section-toggle w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-50" data-section="courses">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                        <span>الدورات التدريبية</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
+                </button>
+                <div class="sidebar-submenu hidden pl-8 mt-1 space-y-1">
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="courses">
+                        <i data-lucide="book" class="w-4 h-4"></i>
+                        <span>إدارة الدورات</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="grades">
+                        <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+                        <span>الدرجات</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="attendance">
+                        <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+                        <span>الحضور</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- الشؤون المالية -->
+            <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50" data-page="finance">
+                <i data-lucide="wallet" class="w-5 h-5"></i>
+                <span>الشؤون المالية</span>
+            </a>
+
+            <!-- طلبات وإعلانات -->
+            <div class="sidebar-section">
+                <button class="sidebar-section-toggle w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-50" data-section="requests">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="inbox" class="w-5 h-5"></i>
+                        <span>الطلبات والإعلانات</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
+                </button>
+                <div class="sidebar-submenu hidden pl-8 mt-1 space-y-1">
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="requests">
+                        <i data-lucide="mail" class="w-4 h-4"></i>
+                        <span>طلبات الالتحاق</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="announcements">
+                        <i data-lucide="megaphone" class="w-4 h-4"></i>
+                        <span>الإعلانات</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- التقارير والأدوات -->
+            <div class="sidebar-section">
+                <button class="sidebar-section-toggle w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-50" data-section="reports">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="bar-chart" class="w-5 h-5"></i>
+                        <span>التقارير والأدوات</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
+                </button>
+                <div class="sidebar-submenu hidden pl-8 mt-1 space-y-1">
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="analytics">
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        <span>التحليلات</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="idcards">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i>
+                        <span>البطاقات الطلابية</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="imports">
+                        <i data-lucide="file-up" class="w-4 h-4"></i>
+                        <span>الاستيراد الذكي</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="ai-images">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>توليد الصور AI</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="smart-import-wizard">
+                        <i data-lucide="wand-2" class="w-4 h-4"></i>
+                        <span>معالج الاستيراد الذكي</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="certificate-designer">
+                        <i data-lucide="award" class="w-4 h-4"></i>
+                        <span>مصمم الشهادات</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-50 text-sm" data-page="ai-charts">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        <span>الرسوم البيانية AI</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- الإعدادات -->
+            <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50" data-page="settings">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span>الإعدادات</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500">مرحباً،</p>
+                    <h2 class="text-2xl font-bold text-slate-800"><?php echo htmlspecialchars($userName); ?></h2>
+                    <p class="text-xs text-slate-400">المدير العام</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button id="notificationsBell" class="relative rounded-full border border-slate-200 p-2 hover:bg-slate-50">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span id="notificationsCounter" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"></span>
+                    </button>
+                    <a href="<?php echo $managerBaseUrl; ?>/logout.php" class="px-4 py-2 rounded-lg bg-sky-600 text-white hover:bg-sky-700">
+                        تسجيل الخروج
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Page Content -->
+        <div id="pageContainer" class="p-8">
+            <!-- Header Section -->
+            <div class="mb-6">
+                <h1 id="pageTitle" class="text-3xl font-bold text-slate-800 mb-2">لوحة التحكم الرئيسية</h1>
+                <p id="pageSubtitle" class="text-slate-600">نظرة عامة على أداء المنصة</p>
+            </div>
+
+            <!-- Body Section -->
+            <div id="pageBody">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-sky-50 text-sky-600">
+                                <i data-lucide="users" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي المتدربين</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_students']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-emerald-50 text-emerald-600">
+                                <i data-lucide="book-open" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الدورات النشطة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['active_courses']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-amber-50 text-amber-600">
+                                <i data-lucide="wallet" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي الإيرادات</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_revenue'], 0); ?> ريال</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-violet-50 text-violet-600">
+                                <i data-lucide="award" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الشهادات الصادرة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['certificates_issued']); ?></p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-2xl shadow p-6 border border-slate-100 mb-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">إجراءات سريعة</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="navigateTo('trainees')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-sky-500 hover:bg-sky-50 transition">
+                            <i data-lucide="user-plus" class="w-8 h-8 text-sky-600"></i>
+                            <span class="text-sm font-medium">إدارة المتدربين</span>
+                        </button>
+                        <button onclick="navigateTo('courses')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 transition">
+                            <i data-lucide="book-plus" class="w-8 h-8 text-emerald-600"></i>
+                            <span class="text-sm font-medium">إدارة الدورات</span>
+                        </button>
+                        <button onclick="navigateTo('finance')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50 transition">
+                            <i data-lucide="dollar-sign" class="w-8 h-8 text-amber-600"></i>
+                            <span class="text-sm font-medium">الشؤون المالية</span>
+                        </button>
+                        <button onclick="navigateTo('analytics')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-violet-500 hover:bg-violet-50 transition">
+                            <i data-lucide="bar-chart" class="w-8 h-8 text-violet-600"></i>
+                            <span class="text-sm font-medium">التحليلات</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Container -->
+<div id="modalBackdrop" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center px-4 z-50">
+    <div class="bg-white w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <h3 id="modalTitle" class="text-xl font-semibold text-slate-800"></h3>
+            <button id="closeModalBtn" class="p-2 rounded-full hover:bg-slate-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div id="modalBody" class="px-6 py-6 max-h-[70vh] overflow-y-auto"></div>
+    </div>
+</div>
+
+<style>
+/* Active Sidebar Link */
+.sidebar-link.active {
+    background-color: #f0f9ff;
+    color: #0284c7;
+    font-weight: 600;
+}
+
+.sidebar-link.active i {
+    color: #0284c7;
+}
+
+/* Sidebar Section */
+.sidebar-section-toggle {
+    font-weight: 500;
+}
+
+.sidebar-section-toggle.active {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+.sidebar-section-toggle.active i:last-child {
+    transform: rotate(180deg);
+}
+
+.sidebar-submenu {
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Smooth Transitions */
+#pageContainer, #pageBody, #pageTitle, #pageSubtitle {
+    transition: all 0.3s ease;
+}
+
+/* Modal Animation */
+#modalBackdrop:not(.hidden) {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+
+<script>
+// تعريف معلومات المستخدم
+window.CURRENT_USER = {
+    id: <?php echo (int)$userId; ?>,
+    role: <?php echo json_encode($userRole); ?>,
+    name: <?php echo json_encode($userName); ?>
+};
+
+// دالة التنقل بين الصفحات
+function navigateTo(page, params = {}) {
+    console.log('Navigate to:', page, 'with params:', params);
+    showToast('جاري التحميل...', 'info');
+    
+    // Update active link
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.page === page) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Load page content based on page name
+    loadPageContent(page, params);
+}
+
+function loadPageContent(page, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const pageUrl = page + '.php' + (queryString ? '?' + queryString : '');
+    
+    // استدعاء الوظيفة من manager-features.js
+    const pageRenderers = {
+        'dashboard': () => {
+            // إظهار الصفحة الرئيسية مع البطاقات الإحصائية
+            document.getElementById('pageTitle').textContent = 'لوحة التحكم الرئيسية';
+            document.getElementById('pageSubtitle').textContent = 'نظرة عامة على أداء المنصة';
+            
+            // إعادة عرض بطاقات الإحصائيات
+            const pageBody = document.getElementById('pageBody');
+            pageBody.innerHTML = `
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-sky-50 text-sky-600">
+                                <i data-lucide="users" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي المتدربين</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_students']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-emerald-50 text-emerald-600">
+                                <i data-lucide="book-open" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الدورات النشطة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['active_courses']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-amber-50 text-amber-600">
+                                <i data-lucide="wallet" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي الإيرادات</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_revenue'], 0); ?> ريال</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-violet-50 text-violet-600">
+                                <i data-lucide="award" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الشهادات الصادرة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['certificates_issued']); ?></p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-2xl shadow p-6 border border-slate-100 mb-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">إجراءات سريعة</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="navigateTo('trainees')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-sky-500 hover:bg-sky-50 transition">
+                            <i data-lucide="user-plus" class="w-8 h-8 text-sky-600"></i>
+                            <span class="text-sm font-medium">إدارة المتدربين</span>
+                        </button>
+                        <button onclick="navigateTo('courses')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 transition">
+                            <i data-lucide="book-plus" class="w-8 h-8 text-emerald-600"></i>
+                            <span class="text-sm font-medium">إدارة الدورات</span>
+                        </button>
+                        <button onclick="navigateTo('finance')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50 transition">
+                            <i data-lucide="dollar-sign" class="w-8 h-8 text-amber-600"></i>
+                            <span class="text-sm font-medium">الشؤون المالية</span>
+                        </button>
+                        <button onclick="navigateTo('analytics')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-violet-500 hover:bg-violet-50 transition">
+                            <i data-lucide="bar-chart" class="w-8 h-8 text-violet-600"></i>
+                            <span class="text-sm font-medium">التحليلات</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Container -->
+<div id="modalBackdrop" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center px-4 z-50">
+    <div class="bg-white w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <h3 id="modalTitle" class="text-xl font-semibold text-slate-800"></h3>
+            <button id="closeModalBtn" class="p-2 rounded-full hover:bg-slate-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div id="modalBody" class="px-6 py-6 max-h-[70vh] overflow-y-auto"></div>
+    </div>
+</div>
+
+<style>
+/* Active Sidebar Link */
+.sidebar-link.active {
+    background-color: #f0f9ff;
+    color: #0284c7;
+    font-weight: 600;
+}
+
+.sidebar-link.active i {
+    color: #0284c7;
+}
+
+/* Sidebar Section */
+.sidebar-section-toggle {
+    font-weight: 500;
+}
+
+.sidebar-section-toggle.active {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+.sidebar-section-toggle.active i:last-child {
+    transform: rotate(180deg);
+}
+
+.sidebar-submenu {
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Smooth Transitions */
+#pageContainer, #pageBody, #pageTitle, #pageSubtitle {
+    transition: all 0.3s ease;
+}
+
+/* Modal Animation */
+#modalBackdrop:not(.hidden) {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+
+<script>
+// تعريف معلومات المستخدم
+window.CURRENT_USER = {
+    id: <?php echo (int)$userId; ?>,
+    role: <?php echo json_encode($userRole); ?>,
+    name: <?php echo json_encode($userName); ?>
+};
+
+// دالة التنقل بين الصفحات
+function navigateTo(page, params = {}) {
+    console.log('Navigate to:', page, 'with params:', params);
+    showToast('جاري التحميل...', 'info');
+    
+    // Update active link
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.page === page) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Load page content based on page name
+    loadPageContent(page, params);
+}
+
+function loadPageContent(page, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const pageUrl = page + '.php' + (queryString ? '?' + queryString : '');
+    
+    // استدعاء الوظيفة من manager-features.js
+    const pageRenderers = {
+        'dashboard': () => {
+            // إظهار الصفحة الرئيسية مع البطاقات الإحصائية
+            document.getElementById('pageTitle').textContent = 'لوحة التحكم الرئيسية';
+            document.getElementById('pageSubtitle').textContent = 'نظرة عامة على أداء المنصة';
+            
+            // إعادة عرض بطاقات الإحصائيات
+            const pageBody = document.getElementById('pageBody');
+            pageBody.innerHTML = `
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-sky-50 text-sky-600">
+                                <i data-lucide="users" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي المتدربين</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_students']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-emerald-50 text-emerald-600">
+                                <i data-lucide="book-open" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الدورات النشطة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['active_courses']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-amber-50 text-amber-600">
+                                <i data-lucide="wallet" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي الإيرادات</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_revenue'], 0); ?> ريال</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-violet-50 text-violet-600">
+                                <i data-lucide="award" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الشهادات الصادرة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['certificates_issued']); ?></p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-2xl shadow p-6 border border-slate-100 mb-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">إجراءات سريعة</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="navigateTo('trainees')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-sky-500 hover:bg-sky-50 transition">
+                            <i data-lucide="user-plus" class="w-8 h-8 text-sky-600"></i>
+                            <span class="text-sm font-medium">إدارة المتدربين</span>
+                        </button>
+                        <button onclick="navigateTo('courses')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 transition">
+                            <i data-lucide="book-plus" class="w-8 h-8 text-emerald-600"></i>
+                            <span class="text-sm font-medium">إدارة الدورات</span>
+                        </button>
+                        <button onclick="navigateTo('finance')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50 transition">
+                            <i data-lucide="dollar-sign" class="w-8 h-8 text-amber-600"></i>
+                            <span class="text-sm font-medium">الشؤون المالية</span>
+                        </button>
+                        <button onclick="navigateTo('analytics')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-violet-500 hover:bg-violet-50 transition">
+                            <i data-lucide="bar-chart" class="w-8 h-8 text-violet-600"></i>
+                            <span class="text-sm font-medium">التحليلات</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Container -->
+<div id="modalBackdrop" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center px-4 z-50">
+    <div class="bg-white w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <h3 id="modalTitle" class="text-xl font-semibold text-slate-800"></h3>
+            <button id="closeModalBtn" class="p-2 rounded-full hover:bg-slate-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div id="modalBody" class="px-6 py-6 max-h-[70vh] overflow-y-auto"></div>
+    </div>
+</div>
+
+<style>
+/* Active Sidebar Link */
+.sidebar-link.active {
+    background-color: #f0f9ff;
+    color: #0284c7;
+    font-weight: 600;
+}
+
+.sidebar-link.active i {
+    color: #0284c7;
+}
+
+/* Sidebar Section */
+.sidebar-section-toggle {
+    font-weight: 500;
+}
+
+.sidebar-section-toggle.active {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+.sidebar-section-toggle.active i:last-child {
+    transform: rotate(180deg);
+}
+
+.sidebar-submenu {
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Smooth Transitions */
+#pageContainer, #pageBody, #pageTitle, #pageSubtitle {
+    transition: all 0.3s ease;
+}
+
+/* Modal Animation */
+#modalBackdrop:not(.hidden) {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+
+<script>
+// تعريف معلومات المستخدم
+window.CURRENT_USER = {
+    id: <?php echo (int)$userId; ?>,
+    role: <?php echo json_encode($userRole); ?>,
+    name: <?php echo json_encode($userName); ?>
+};
+
+// دالة التنقل بين الصفحات
+function navigateTo(page, params = {}) {
+    console.log('Navigate to:', page, 'with params:', params);
+    showToast('جاري التحميل...', 'info');
+    
+    // Update active link
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.page === page) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Load page content based on page name
+    loadPageContent(page, params);
+}
+
+function loadPageContent(page, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const pageUrl = page + '.php' + (queryString ? '?' + queryString : '');
+    
+    // استدعاء الوظيفة من manager-features.js
+    const pageRenderers = {
+        'dashboard': () => {
+            // إظهار الصفحة الرئيسية مع البطاقات الإحصائية
+            document.getElementById('pageTitle').textContent = 'لوحة التحكم الرئيسية';
+            document.getElementById('pageSubtitle').textContent = 'نظرة عامة على أداء المنصة';
+            
+            // إعادة عرض بطاقات الإحصائيات
+            const pageBody = document.getElementById('pageBody');
+            pageBody.innerHTML = `
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-sky-50 text-sky-600">
+                                <i data-lucide="users" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي المتدربين</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_students']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-emerald-50 text-emerald-600">
+                                <i data-lucide="book-open" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الدورات النشطة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['active_courses']); ?></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-amber-50 text-amber-600">
+                                <i data-lucide="wallet" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">إجمالي الإيرادات</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['total_revenue'], 0); ?> ريال</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-full bg-violet-50 text-violet-600">
+                                <i data-lucide="award" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500">الشهادات الصادرة</p>
+                        <p class="text-3xl font-bold mt-2"><?php echo number_format($stats['certificates_issued']); ?></p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-2xl shadow p-6 border border-slate-100 mb-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">إجراءات سريعة</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="navigateTo('trainees')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-sky-500 hover:bg-sky-50 transition">
+                            <i data-lucide="user-plus" class="w-8 h-8 text-sky-600"></i>
+                            <span class="text-sm font-medium">إدارة المتدربين</span>
+                        </button>
+                        <button onclick="navigateTo('courses')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 transition">
+                            <i data-lucide="book-plus" class="w-8 h-8 text-emerald-600"></i>
+                            <span class="text-sm font-medium">إدارة الدورات</span>
+                        </button>
+                        <button onclick="navigateTo('finance')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50 transition">
+                            <i data-lucide="dollar-sign" class="w-8 h-8 text-amber-600"></i>
+                            <span class="text-sm font-medium">الشؤون المالية</span>
+                        </button>
+                        <button onclick="navigateTo('analytics')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-violet-500 hover:bg-violet-50 transition">
+                            <i data-lucide="bar-chart" class="w-8 h-8 text-violet-600"></i>
+                            <span class="text-sm font-medium">التحليلات</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        },
+        'trainees': renderTrainees,
+        'trainers': renderTrainers,
+        'courses': renderCourses,
+        'finance': renderFinance,
+        'requests': renderRequests,
+        'announcements': renderAnnouncements,
+        'grades': renderGrades,
+        'analytics': renderAnalytics,
+        'attendance': renderAttendance,
+        'idcards': renderIDCards,
+        'graduates': renderGraduates,
+        'imports': renderImports,
+        'ai-images': renderAIImages,
+        'settings': renderSettings,
+        'smart-import-wizard': renderSmartImportWizard,
+        'certificate-designer': renderCertificateDesigner,
+        'ai-charts': renderAICharts,
+        'generic-crud': renderGenericCrud
+    };
+    
+    if (pageRenderers[page]) {
+        pageRenderers[page](params);
+    } else {
+        document.getElementById('pageTitle').textContent = 'صفحة غير موجودة';
+        document.getElementById('pageSubtitle').textContent = 'القسم المطلوب غير متاح';
+        document.getElementById('pageBody').innerHTML = `
+            <div class="bg-white rounded-2xl shadow p-8 text-center">
+                <i data-lucide="alert-circle" class="w-16 h-16 mx-auto text-red-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">القسم غير موجود</h3>
+                <p class="text-slate-600">الرجاء اختيار قسم من القائمة الجانبية</p>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+}
+
+function renderSmartImportWizard(params) {
+    // Redirect to the main imports function which is now fully featured
+    renderImports();
+}
+
+function renderCertificateDesigner(params) {
+    // Call the implementation in manager-features.js
+    if (typeof window.renderCertificateDesigner === 'function') {
+        window.renderCertificateDesigner();
+    }
+}
+
+function renderAICharts(params) {
+    // Call the implementation in manager-features.js
+    if (typeof window.renderAICharts === 'function') {
+        window.renderAICharts();
+    }
+}
+
+function renderGenericCrud(params) {
+    if (!params || !params.table) {
+        document.getElementById('pageTitle').textContent = 'خطأ';
+        document.getElementById('pageSubtitle').textContent = 'لم يتم تحديد جدول.';
+        document.getElementById('pageBody').innerHTML = '<p>الرجاء تحديد جدول لعرضه.</p>';
+        return;
+    }
+
+    document.getElementById('pageTitle').textContent = 'إدارة البيانات المخصصة';
+    document.getElementById('pageSubtitle').textContent = `عرض وتحرير بيانات جدول: ${params.table}`;
+    const pageBody = document.getElementById('pageBody');
+    pageBody.innerHTML = 'جاري تحميل واجهة الإدارة...';
+    
+    // Fetch generic_crud.php content
+    fetch('generic_crud.php')
+        .then(response => response.text())
+        .then(html => {
+            pageBody.innerHTML = html;
+            // Execute scripts in the injected HTML
+            const scripts = pageBody.getElementsByTagName('script');
+            for (let i = 0; i < scripts.length; i++) {
+                // Use a safer way to execute scripts if possible, or just eval for now as it's internal
+                const scriptContent = scripts[i].innerText;
+                if (scriptContent) {
+                    window.eval(scriptContent);
+                }
+            }
+            
+            if (typeof initGenericCrud === 'function') {
+                initGenericCrud(params.table);
+            } else {
+                console.error('initGenericCrud not found');
+                pageBody.innerHTML += '<p class="text-red-500">فشل تهيئة النظام.</p>';
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            pageBody.innerHTML = '<p class="text-red-500">فشل تحميل الواجهة.</p>';
+        });
+}
+
+function openIDCardsPage() {
+    navigateTo('idcards');
+}
+
+// ===== وظائف سريعة =====
+
+// إضافة طالب سريع
+function quickAddStudent() {
+    if (typeof openAdvancedStudentModal !== 'undefined') {
+        openAdvancedStudentModal();
+    } else {
+        showToast('يرجى تحميل النماذج المتقدمة', 'warning');
+    }
+}
+
+// إضافة دفعة مالية سريعة
+function quickAddPayment() {
+    if (typeof openAdvancedPaymentModal !== 'undefined') {
+        openAdvancedPaymentModal();
+    } else {
+        showToast('يرجى تحميل النماذج المتقدمة', 'warning');
+    }
+}
+
+// إرسال إشعار جماعي
+function broadcastNotification() {
+    const message = prompt('أدخل نص الإشعار:');
+    if (message) {
+        fetch('<?php echo $managerBaseUrl; ?>/api/notifications_system.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'broadcast',
+                title: 'إشعار من الإدارة',
+                message: message,
+                type: 'announcement',
+                target_roles: ['student', 'trainer', 'technical']
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✓ تم إرسال الإشعار لجميع المستخدمين', 'success');
+            } else {
+                showToast('خطأ: ' + data.message, 'error');
+            }
+        });
+    }
+}
+
+// تصدير التقارير
+function exportReport(type) {
+    showToast(`جاري تصدير تقرير ${type}...`, 'info');
+    
+    fetch(`<?php echo $managerBaseUrl; ?>/api/dynamic_analytics.php?action=comprehensive_analytics`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // تحويل البيانات إلى CSV أو PDF
+                console.log('Report data:', data);
+                showToast('التقرير جاهز للتنزيل', 'success');
+            }
+        });
+}
+
+// تحديث الصفحة بدون إعادة تحميل
+function refreshDashboard() {
+    showToast('جاري تحديث البيانات...', 'info');
+    
+    if (typeof ChartsSystem !== 'undefined') {
+        ChartsSystem.loadDashboardStats();
+        ChartsSystem.loadAllCharts();
+    }
+    
+    loadNotifications();
+    
+    setTimeout(() => {
+        showToast('✓ تم تحديث البيانات بنجاح', 'success');
+    }, 1000);
+}
+
+// ===== الإحصائيات الحية =====
+function startLiveStats() {
+    setInterval(() => {
+        // تحديث الإحصائيات كل 30 ثانية
+        fetch('<?php echo $managerBaseUrl; ?>/api/dynamic_analytics.php?action=dashboard_stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // تحديث البطاقات الإحصائية
+                    updateStatCards(data.stats);
+                }
+            });
+    }, 30000);
+}
+
+function updateStatCards(stats) {
+    // تحديث قيم البطاقات بانيميشن
+    animateNumber('totalStudents', stats.total_students);
+    animateNumber('activeCourses', stats.active_courses);
+    animateNumber('totalRevenue', stats.total_revenue);
+}
+
+function animateNumber(elementId, targetValue) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const currentValue = parseInt(element.textContent.replace(/[^0-9]/g, '')) || 0;
+    const step = (targetValue - currentValue) / 20;
+    let current = currentValue;
+    
+    const timer = setInterval(() => {
+        current += step;
+        if ((step > 0 && current >= targetValue) || (step < 0 && current <= targetValue)) {
+            current = targetValue;
+            clearInterval(timer);
+        }
+        element.textContent = Math.round(current).toLocaleString('ar-SA');
+    }, 50);
+}
+
+document.getElementById('closeModalBtn').addEventListener('click', () => {
+    document.getElementById('modalBackdrop').classList.add('hidden');
+});
+</script>
+
+<!-- تحميل الأنظمة الجديدة -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="<?php echo $managerBaseUrl; ?>/js/dashboard-integration.js"></script>
+<script src="<?php echo $managerBaseUrl; ?>/js/advanced-forms.js"></script>
+<script src="<?php echo $managerBaseUrl; ?>/js/dynamic-charts.js"></script>
+<script src="manager-features.js"></script>
+
+<script>
+// ===== تهيئة الأنظمة المتقدمة =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initializing Advanced Manager Dashboard...');
+    
+    // تهيئة القائمة الجانبية
+    initSidebarNavigation();
+    
+    // تحميل الإحصائيات والرسوم البيانية
+    if (typeof ChartsSystem !== 'undefined') {
+        console.log('✅ Charts System detected - Loading analytics...');
+        setTimeout(() => {
+            ChartsSystem.loadDashboardStats();
+            ChartsSystem.loadAllCharts();
+            ChartsSystem.startAutoRefresh(5); // تحديث كل 5 دقائق
+        }, 500);
+    }
+    
+    // تفعيل نظام الإشعارات
+    if (typeof loadNotificationsSystem === 'function') loadNotificationsSystem();
+    
+    // تفعيل نظام الدردشة
+    if (typeof initializeChatSystem === 'function') initializeChatSystem();
+    
+    // إعداد الاختصارات
+    if (typeof setupKeyboardShortcuts === 'function') setupKeyboardShortcuts();
+});
+
+// ===== تهيئة القائمة الجانبية =====
+function initSidebarNavigation() {
+    // Handle sidebar links
+    const links = document.querySelectorAll('.sidebar-link');
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all links
+            links.forEach(l => l.classList.remove('active'));
+            
+            // Add active class to clicked link
+            this.classList.add('active');
+            
+            // Navigate
+            const page = this.dataset.page;
+            if (page) {
+                navigateTo(page);
+            }
+        });
+    });
+
+    // Handle sidebar section toggles
+    const toggles = document.querySelectorAll('.sidebar-section-toggle');
+    toggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            const submenu = this.nextElementSibling;
+            if (submenu) {
+                submenu.classList.toggle('hidden');
+            }
+            const icon = this.querySelector('.lucide-chevron-down');
+            if (icon) {
+                icon.style.transform = this.classList.contains('active') ? 'rotate(180deg)' : '';
+            }
+        });
+    });
+}
+
+// ===== نظام الإشعارات =====
+let notificationInterval = null;
+
+function loadNotificationsSystem() {
+    console.log('🔔 Loading Notifications System...');
+    
+    // تحميل الإشعارات
+    loadNotifications();
+    
+    // تحديث تلقائي كل دقيقة
+    notificationInterval = setInterval(loadNotifications, 60000);
+    
+    // زر الإشعارات
+    const bellBtn = document.getElementById('notificationsBell');
+    if (bellBtn) {
+        bellBtn.addEventListener('click', toggleNotificationsPanel);
+    }
+}
+
+function loadNotifications() {
+    fetch('<?php echo $managerBaseUrl; ?>/api/notifications_system.php?action=all&page=1&limit=10')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof updateNotificationBadge === 'function') updateNotificationBadge(data.unread_count);
+                if (typeof displayNotifications === 'function') displayNotifications(data.notifications);
+            }
+        });
+}
+</script>
+</body>
+</html>

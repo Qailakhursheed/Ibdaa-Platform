@@ -5,6 +5,8 @@ require_once __DIR__ . '/../includes/rate_limiter.php';
 require_once __DIR__ . '/../includes/anti_detection.php';
 require_once 'db.php';
 
+/** @var mysqli $conn */
+
 // إخفاء معلومات السيرفر
 AntiDetection::hideServerHeaders();
 
@@ -27,16 +29,7 @@ if (AntiDetection::detectBot() || AntiDetection::detectFingerprinting()) {
 
 // التحقق من تسجيل الدخول مسبقاً
 if (isset($_SESSION['user_id'])) {
-    $userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'student';
-    switch ($userRole) {
-        case 'manager':
-        case 'technical':
-        case 'trainer':
-            header("Location: ../Manager/dashboard_router.php");
-            break;
-        default:
-            header("Location: student-dashboard.php");
-    }
+    header("Location: ../Manager/dashboard_router.php");
     exit;
 }
 
@@ -80,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $warningMessage = $rateLimiter->getErrorMessage($rateStatus);
                 }
                 
-                $stmt = $conn->prepare("SELECT id, full_name, email, password_hash, role, verified, photo_path, account_status, payment_complete FROM users WHERE email = ?");
+                $stmt = $conn->prepare("SELECT id, full_name, email, password_hash, role, verified, photo, account_status FROM users WHERE email = ?");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -88,9 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($result->num_rows === 0) {
                     // رسالة موحدة عامة
                     $error = AntiDetection::getGenericError('login');
-                    $rateLimiter->recordAttempt($email, false);
+                    $rateLimiter->logAttempt($email, false);
                     // تأخير متدرج
-                    AntiDetection::addProgressiveDelay($rateStatus['attempts'] + 1);
+                    AntiDetection::addProgressiveDelay($rateStatus['attempts'] ?? 0 + 1);
                 } else {
                     $user = $result->fetch_assoc();
                     
@@ -98,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!password_verify($password, $user['password_hash'])) {
                         // نفس الرسالة الموحدة
                         $error = AntiDetection::getGenericError('login');
-                        $rateLimiter->recordAttempt($email, false);
+                        $rateLimiter->logAttempt($email, false);
                         // تأخير متدرج
                         AntiDetection::addProgressiveDelay($rateStatus['attempts'] + 1);
                     } 
@@ -111,13 +104,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $error .= '<br><small>للاختبار: <a href="' . $_SESSION['verification_link'] . '" class="underline text-yellow-300">اضغط هنا للتفعيل</a></small>';
                         }
                     }
-                    // التحقق من حالة الحساب والدفع
-                    elseif ($user['account_status'] === 'pending' || $user['payment_complete'] == 0) {
-                        $error = "حسابك قيد المراجعة أو لم يتم تأكيد الدفع بعد. يرجى التواصل مع الإدارة لتفعيل الحساب.";
+                    // التحقق من حالة الحساب
+                    elseif ($user['account_status'] === 'pending') {
+                        $error = "حسابك قيد المراجعة. يرجى انتظار موافقة الإدارة.";
+                    }
+                    elseif ($user['account_status'] === 'suspended') {
+                        $error = "تم إيقاف حسابك. يرجى التواصل مع الإدارة.";
+                    }
+                    elseif ($user['account_status'] === 'rejected') {
+                        $error = "تم رفض طلب انضمامك.";
                     }
                     else {
                         // تسجيل دخول ناجح
-                        $rateLimiter->recordAttempt($email, true);
+                        $rateLimiter->logAttempt($email, true);
                         $rateLimiter->clearAttempts($email);
                         
                         $userRole = $user['role'] ?? 'student';
@@ -128,24 +127,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'full_name' => $user['full_name'],
                             'email' => $user['email'],
                             'role' => $userRole,
-                            'photo' => $user['photo_path']
+                            'photo' => $user['photo']
                         ]);
                         
                         // تجديد CSRF Token
                         CSRF::refreshToken();
                         
-                        // التوجيه حسب الدور
-                        switch ($userRole) {
-                            case 'manager':
-                            case 'technical':
-                                header("Location: ../Manager/dashboard_router.php");
-                                break;
-                            case 'trainer':
-                                header("Location: trainer-dashboard.php");
-                                break;
-                            default:
-                                header("Location: student-dashboard.php");
-                        }
+                        // التوجيه الموحد لجميع الأدوار إلى لوحات التحكم الجديدة
+                        header("Location: ../Manager/dashboard_router.php");
                         exit;
                     }
                 }
@@ -190,6 +179,7 @@ $conn->close();
       z-index: 0;
     }
   </style>
+    <link rel="stylesheet" href="css/chatbot.css">
 </head>
 
 <body class="relative text-white">
@@ -225,7 +215,7 @@ $conn->close();
       <?php echo AntiDetection::getProtectedFormFields(); ?>
       <div>
         <label class="block text-gray-200 mb-1">البريد الإلكتروني</label>
-        <input type="email" name="email" required placeholder="example@email.com" 
+        <input type="email" name="email" required placeholder="أدخل بريدك الإلكتروني" 
                value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
                class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-gray-200 focus:ring-2 focus:ring-indigo-400">
       </div>
@@ -246,5 +236,6 @@ $conn->close();
     </p>
   </div>
   <script src="js/watermark.js"></script>
+  <script src="js/chatbot.js"></script>
 </body>
 </html>

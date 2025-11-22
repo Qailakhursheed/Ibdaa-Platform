@@ -1,10 +1,27 @@
+<?php
+// Load student data using Helper Class
+global $studentHelper, $userId, $userName;
+
+$courses = $studentHelper->getMyCourses();
+$gpaData = $studentHelper->getGPA();
+$attendanceData = $studentHelper->getAttendanceRate();
+$recentCourses = array_slice($courses, 0, 4);
+
+$stats = [
+    'enrolled_courses' => count(array_filter($courses, fn($c) => $c['enrollment_status'] === 'active')),
+    'completed_courses' => count(array_filter($courses, fn($c) => $c['enrollment_status'] === 'completed')),
+    'gpa' => $gpaData['gpa'],
+    'attendance_rate' => $attendanceData['rate']
+];
+?>
+
 <div class="space-y-6">
     <!-- Welcome Banner -->
-    <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-8 text-white">
+    <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-8 text-white shadow-xl">
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-3xl font-bold mb-2">مرحباً بك مجدداً! 👋</h2>
-                <p class="text-amber-100">استمر في تحقيق أهدافك التعليمية</p>
+                <h2 class="text-3xl font-bold mb-2">مرحباً <?php echo htmlspecialchars($userName); ?>! 👋</h2>
+                <p class="text-amber-100">استمر في تحقيق أهدافك التعليمية - معدلك: <?php echo $stats['gpa']; ?></p>
             </div>
             <div class="hidden md:block">
                 <i data-lucide="graduation-cap" class="w-24 h-24 opacity-30"></i>
@@ -47,54 +64,69 @@
         </button>
     </div>
 
-    <!-- Statistics Cards -->
+    <!-- Statistics Cards - PHP Data -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
             <div class="flex items-center justify-between mb-4">
                 <i data-lucide="book-open" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="enrolledCourses">0</span>
+                <span class="text-3xl font-bold text-slate-800"><?php echo $stats['enrolled_courses']; ?></span>
             </div>
-            <p class="text-sm text-slate-600">دورة مسجلة</p>
+            <p class="text-sm text-slate-600 font-semibold">دورة مسجلة</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="star" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="gpa">0.0</span>
+                <i data-lucide="star" class="w-8 h-8 text-green-600"></i>
+                <span class="text-3xl font-bold text-slate-800"><?php echo number_format($stats['gpa'], 2); ?></span>
             </div>
-            <p class="text-sm text-slate-600">المعدل التراكمي</p>
+            <p class="text-sm text-slate-600 font-semibold">المعدل التراكمي</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="calendar-check" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="attendanceRate">0%</span>
+                <i data-lucide="calendar-check" class="w-8 h-8 text-blue-600"></i>
+                <span class="text-3xl font-bold text-slate-800"><?php echo number_format($stats['attendance_rate'], 1); ?>%</span>
             </div>
-            <p class="text-sm text-slate-600">نسبة الحضور</p>
+            <p class="text-sm text-slate-600 font-semibold">نسبة الحضور</p>
         </div>
         
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="clipboard-list" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-2xl font-bold text-slate-800" id="pendingAssignments">0</span>
+                <i data-lucide="check-circle" class="w-8 h-8 text-purple-600"></i>
+                <span class="text-3xl font-bold text-slate-800"><?php echo $stats['completed_courses']; ?></span>
             </div>
-            <p class="text-sm text-slate-600">واجبات معلقة</p>
+            <p class="text-sm text-slate-600 font-semibold">دورات مكتملة</p>
         </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- GPA Trend -->
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">تطور المعدل التراكمي</h3>
-            <canvas id="gpaChart" height="200"></canvas>
+    <!-- Interactive Charts from Python API -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Courses Progress Chart -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
+            <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="trending-up" class="w-6 h-6 text-blue-600"></i>
+                تقدم الدورات
+            </h3>
+            <div id="coursesProgressChart" class="h-80"></div>
         </div>
         
-        <!-- Course Progress -->
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">تقدم الدورات</h3>
-            <canvas id="progressChart" height="200"></canvas>
+        <!-- Grades Overview Chart -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
+            <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-6 h-6 text-green-600"></i>
+                نظرة على الدرجات
+            </h3>
+            <div id="gradesOverviewChart" class="h-80"></div>
         </div>
+    </div>
+    
+    <!-- Attendance Rate Chart -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
+        <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="calendar-check" class="w-6 h-6 text-purple-600"></i>
+            معدل الحضور حسب الدورة
+        </h3>
+        <div id="attendanceRateChart" class="h-80"></div>
     </div>
 
     <!-- Recent Activity & Upcoming -->
@@ -121,8 +153,75 @@
     </div>
 </div>
 
+<!-- Recent Courses - PHP Data -->
+<div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg">
+    <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+        <i data-lucide="layers" class="w-6 h-6 text-indigo-600"></i>
+        دوراتي الأخيرة
+    </h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <?php foreach ($recentCourses as $course): ?>
+        <div class="border border-slate-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+            <div class="flex items-start justify-between mb-3">
+                <span class="px-3 py-1 text-xs font-semibold rounded-full 
+                    <?php echo $course['enrollment_status'] === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'; ?>">
+                    <?php echo $course['enrollment_status'] === 'active' ? 'نشط' : 'مكتمل'; ?>
+                </span>
+            </div>
+            
+            <h4 class="font-bold text-slate-800 mb-2 line-clamp-2"><?php echo htmlspecialchars($course['course_name']); ?></h4>
+            <p class="text-sm text-slate-600 mb-3">المدرب: <?php echo htmlspecialchars($course['trainer_name'] ?? 'غير محدد'); ?></p>
+            
+            <!-- Progress Bar -->
+            <div class="space-y-1">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-600">التقدم</span>
+                    <span class="font-semibold text-blue-600"><?php echo $course['progress'] ?? 0; ?>%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full transition-all" 
+                         style="width: <?php echo $course['progress'] ?? 0; ?>%"></div>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        
+        <?php if (empty($recentCourses)): ?>
+        <div class="col-span-full text-center py-12">
+            <i data-lucide="inbox" class="w-16 h-16 text-slate-300 mx-auto mb-4"></i>
+            <p class="text-slate-500 text-lg">لم تسجل في أي دورات بعد</p>
+            <a href="?page=courses" class="inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                تصفح الدورات المتاحة
+            </a>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Plotly.js for interactive charts -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="<?php echo $managerBaseUrl; ?>/assets/js/chart-loader.js"></script>
+
 <script>
-// Load statistics
+// Load interactive charts from Python API
+document.addEventListener('DOMContentLoaded', function() {
+    const studentId = <?php echo $userId; ?>;
+    
+    // Load Courses Progress Chart
+    ChartLoader.loadStudentCoursesProgress('coursesProgressChart', studentId);
+    
+    // Load Grades Overview Chart
+    ChartLoader.loadStudentGradesOverview('gradesOverviewChart', studentId);
+    
+    // Load Attendance Rate Chart
+    ChartLoader.loadStudentAttendanceRate('attendanceRateChart', studentId);
+    
+    // Initialize Lucide icons
+    lucide.createIcons();
+});
+
+// Load statistics function
 async function loadStatistics() {
     // Load courses
     const coursesResponse = await StudentFeatures.courses.getMyCourses();
@@ -236,7 +335,7 @@ function createGPAChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
             plugins: {
                 legend: { display: false }
             },
@@ -265,7 +364,7 @@ function createProgressChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
             plugins: {
                 legend: { position: 'bottom' }
             }
@@ -273,8 +372,21 @@ function createProgressChart() {
     });
 }
 
-// Initialize
-loadStatistics();
-createGPAChart();
-createProgressChart();
+// Initialize with conditional loading
+if (typeof StudentFeatures !== 'undefined') {
+    loadStatistics();
+    createGPAChart();
+    createProgressChart();
+} else {
+    console.log('Waiting for StudentFeatures to load...');
+    setTimeout(() => {
+        if (typeof StudentFeatures !== 'undefined') {
+            loadStatistics();
+            createGPAChart();
+            createProgressChart();
+        } else {
+            console.error('StudentFeatures failed to load');
+        }
+    }, 1000);
+}
 </script>

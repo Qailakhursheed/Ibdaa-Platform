@@ -1,36 +1,35 @@
 <?php
-// 🔧 Advanced CRUD Operations System
-// Enhanced Create, Read, Update, Delete with Validation, Undo/Redo, Bulk Operations & Audit Trail
+/**
+ * Advanced CRUD Operations System
+ * Enhanced Create, Read, Update, Delete with Validation, Undo/Redo, Bulk Operations & Audit Trail
+ * محمي بنظام الحماية المركزي
+ */
 
-session_start();
-header('Content-Type: application/json; charset=utf-8');
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
+require_once __DIR__ . '/api_auth.php';
 require_once __DIR__ . '/../../database/db.php';
+
+// التحقق من المصادقة (جميع المستخدمين المسجلين)
+$currentUser = APIAuth::requireAuth();
+
+// تطبيق Rate Limiting
+APIAuth::rateLimit(120, 60);
+
+header('Content-Type: application/json; charset=utf-8');
 
 // ===== HELPER FUNCTIONS =====
 
 function respond($data, $status = 200) {
-    http_response_code($status);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
-    exit;
+    APIAuth::sendSuccess($data);
 }
 
 function checkAuth() {
-    $userId = $_SESSION['user_id'] ?? null;
-    $userRole = $_SESSION['user_role'] ?? ($_SESSION['role'] ?? null);
-    
-    if (!$userId) {
-        respond(['success' => false, 'message' => 'غير مصرح - يرجى تسجيل الدخول'], 401);
-    }
-    
-    return ['user_id' => $userId, 'role' => $userRole];
+    global $currentUser;
+    return $currentUser;
 }
 
 function checkPermission($userRole, $requiredRoles) {
     if (!in_array($userRole, $requiredRoles, true)) {
-        respond(['success' => false, 'message' => 'ليس لديك صلاحية لهذا الإجراء'], 403);
+        APIAuth::sendError('ليس لديك صلاحية لهذا الإجراء', 403);
     }
 }
 

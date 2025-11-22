@@ -1,21 +1,15 @@
 <?php
 /**
- * ID Cards Management API
- * نظام إدارة البطاقات الطلابية - API
- * 
- * للمشرف الفني والمدير العام
- * 
- * الوظائف:
- * - إنشاء بطاقات جديدة
- * - عرض جميع البطاقات
- * - تحديث البطاقات
- * - تحميل البطاقة PDF
- * - إرسال البطاقة عبر Email/WhatsApp
- * - طباعة البطاقات
- * - مسح الباركود
+ * id_cards - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 require_once __DIR__ . '/../includes/db_connect.php';
 
 header('Content-Type: application/json; charset=utf-8');

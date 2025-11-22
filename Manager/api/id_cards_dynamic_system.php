@@ -1,37 +1,14 @@
 <?php
 /**
- * ═══════════════════════════════════════════════════════════════
- * ADVANCED DYNAMIC ID CARDS SYSTEM - 100%
- * نظام البطاقات الإلكترونية الذكية المتقدم - الإصدار الكامل
- * ═══════════════════════════════════════════════════════════════
- * Features:
- * - Dynamic card generation with real-time updates
- * - NFC chip simulation
- * - QR Code + Barcode integration
- * - Multi-format export (PDF, PNG, JPG)
- * - Version control and change tracking
- * - WhatsApp + Email delivery
- * - Bulk operations
- * - Security features (watermarks, holograms)
- * - Expiry management
- * - Print tracking
- * ═══════════════════════════════════════════════════════════════
- * 
- * NOTE: PHP Intelephense warnings about "Undefined variable" for function 
- * parameters are FALSE POSITIVES and can be safely ignored. All variables 
- * are properly defined as function parameters with PHPDoc annotations.
- * 
- * Undefined type warnings for Redis, TCPDF, and Image are handled with:
- * - Class existence checks before instantiation
- * - Fallback behavior if libraries not installed
- * - Full namespace paths (\Redis, \TCPDF)
- * 
- * ═══════════════════════════════════════════════════════════════
+ * id_cards_dynamic_system - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
 
 require_once __DIR__ . '/../../database/db.php';
 

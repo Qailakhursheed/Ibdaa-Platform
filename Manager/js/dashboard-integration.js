@@ -7,8 +7,18 @@
  */
 
 // ===== معلومات المستخدم الحالي =====
+// Helper: Get base path
+if (typeof window.getBasePath !== 'function') {
+    window.getBasePath = function() {
+        const path = window.location.pathname;
+        const match = path.match(/(.*?\/Ibdaa-Taiz)/);
+        return match ? match[1] : '';
+    };
+}
+
 const DashboardIntegration = {
     currentUser: window.CURRENT_USER || {},
+    basePath: window.getBasePath(),
     
     // ===== التنقل بين اللوحات =====
     navigation: {
@@ -54,7 +64,7 @@ const DashboardIntegration = {
     api: {
         // نظام الدردشة
         chat: {
-            base: '/Manager/api/chat_system.php',
+            get base() { return DashboardIntegration.basePath + '/Manager/api/chat_system.php'; },
             
             getConversations: function() {
                 return fetch(this.base + '?action=conversations')
@@ -92,7 +102,7 @@ const DashboardIntegration = {
         
         // نظام الإشعارات
         notifications: {
-            base: '/Manager/api/notifications_system.php',
+            get base() { return DashboardIntegration.basePath + '/Manager/api/notifications_system.php'; },
             
             getAll: function(page = 1, limit = 10) {
                 return fetch(this.base + `?action=all&page=${page}&limit=${limit}`)
@@ -141,7 +151,7 @@ const DashboardIntegration = {
         
         // نظام البطاقات
         idCards: {
-            base: '/Manager/api/id_cards_system.php',
+            get base() { return DashboardIntegration.basePath + '/Manager/api/id_cards_system.php'; },
             
             generate: function(userId) {
                 return fetch(this.base, {
@@ -167,7 +177,7 @@ const DashboardIntegration = {
         
         // نظام الاستيراد
         import: {
-            base: '/Manager/api/smart_import.php',
+            get base() { return DashboardIntegration.basePath + '/Manager/api/smart_import.php'; },
             
             uploadFile: function(file, importType) {
                 const formData = new FormData();
@@ -189,7 +199,7 @@ const DashboardIntegration = {
         
         // نظام التحليلات
         analytics: {
-            base: '/Manager/api/dynamic_analytics.php',
+            get base() { return DashboardIntegration.basePath + '/Manager/api/dynamic_analytics.php'; },
             
             getDashboardStats: function() {
                 return fetch(this.base + '?action=dashboard_stats')

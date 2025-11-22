@@ -50,67 +50,63 @@ async function generateReport(type) {
     lucide.createIcons();
     
     try {
-        let response;
-        const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - 6);
-        const endDate = new Date();
+        // Check if Python API is available
+        const apiUrl = 'http://localhost:5000/api/reports/' + type;
+        const response = await fetch(apiUrl);
         
-        if (type === 'courses') {
-            response = await TechnicalFeatures.reports.getCoursesReport(
-                startDate.toISOString().split('T')[0],
-                endDate.toISOString().split('T')[0]
-            );
-        } else if (type === 'trainers') {
-            response = await TechnicalFeatures.reports.getTrainersReport(
-                startDate.toISOString().split('T')[0],
-                endDate.toISOString().split('T')[0]
-            );
-        } else {
-            response = { success: false, message: 'نوع التقرير غير مدعوم' };
+        if (!response.ok) {
+            throw new Error('Python API غير متاح. يرجى تشغيل: python charts_api.py');
         }
         
-        if (response.success) {
+        const data = await response.json();
+        
+        if (data.success) {
             container.innerHTML = `
                 <div class="mb-6 flex items-center justify-between">
                     <h3 class="text-2xl font-bold text-slate-800">
                         ${type === 'courses' ? 'تقرير الدورات' : type === 'trainers' ? 'تقرير المدربين' : 'تقرير الجودة'}
                     </h3>
-                    <button onclick="exportToPDF('${type}')" 
+                    <button onclick="window.print()" 
                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                        تصدير PDF
+                        <i data-lucide="printer" class="w-5 h-5"></i>
+                        طباعة
                     </button>
                 </div>
                 <div class="space-y-6">
                     <div class="bg-slate-50 rounded-lg p-6">
                         <h4 class="font-bold text-slate-800 mb-4">الإحصائيات الرئيسية</h4>
-                        <p class="text-slate-600">سيتم عرض البيانات التفصيلية هنا</p>
+                        <div id="reportChart"></div>
                     </div>
                 </div>
             `;
+            
+            // Display chart if available
+            if (data.chart) {
+                const chartDiv = document.getElementById('reportChart');
+                Plotly.newPlot(chartDiv, data.chart.data, data.chart.layout);
+            }
         } else {
-            throw new Error(response.message);
+            throw new Error(data.message || 'فشل إنشاء التقرير');
         }
     } catch (error) {
+        console.error('Report Error:', error);
         container.innerHTML = `
             <div class="text-center py-16">
-                <i data-lucide="alert-circle" class="w-12 h-12 mx-auto text-red-500 mb-4"></i>
-                <p class="text-red-700 font-semibold">فشل إنشاء التقرير</p>
+                <i data-lucide="alert-circle" class="w-12 h-12 mx-auto text-amber-500 mb-4"></i>
+                <h3 class="text-xl font-semibold text-slate-800 mb-2">Python API غير متاح</h3>
+                <p class="text-slate-600 mb-4">لإنشاء التقارير التفاعلية، يرجى تشغيل Python API Server:</p>
+                <div class="bg-slate-100 rounded-lg p-4 text-left max-w-2xl mx-auto mb-4">
+                    <code class="text-sm text-slate-800">
+                        cd c:\\xampp\\htdocs\\Ibdaa-Taiz\\Manager\\dashboards\\api<br>
+                        python charts_api.py
+                    </code>
+                </div>
+                <p class="text-slate-500 text-sm">أو استخدم التقارير الأساسية المتاحة في القوائم الأخرى</p>
             </div>
         `;
     }
     
     lucide.createIcons();
-}
-
-async function exportToPDF(type) {
-    DashboardIntegration.ui.showToast('جاري تصدير التقرير...', 'info');
-    const response = await TechnicalFeatures.reports.generatePDF(type, {});
-    if (response.success) {
-        DashboardIntegration.ui.showToast('تم تصدير التقرير بنجاح', 'success');
-    } else {
-        DashboardIntegration.ui.showToast('فشل تصدير التقرير', 'error');
-    }
 }
 
 lucide.createIcons();

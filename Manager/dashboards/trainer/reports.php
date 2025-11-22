@@ -1,232 +1,139 @@
+<?php
+// Load course report using TrainerHelper
+global $trainerHelper;
+$myCourses = $trainerHelper->getMyCourses();
+$selectedCourse = $_GET['course_id'] ?? null;
+$report = $selectedCourse ? $trainerHelper->getCourseReport($selectedCourse) : null;
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">التقارير والإحصائيات</h2>
-            <p class="text-slate-600 mt-1">تقارير شاملة عن أداء الطلاب والدورات</p>
+            <p class="text-slate-600 mt-1">تقارير شاملة عن أداء الطلاب والدورات - <?php echo count($myCourses); ?> دورة</p>
         </div>
-        <button onclick="exportAllReports()" 
-            class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold flex items-center gap-2">
-            <i data-lucide="download" class="w-5 h-5"></i>
-            تصدير جميع التقارير
-        </button>
     </div>
 
-    <!-- Report Type Selection -->
-    <div class="bg-white border border-slate-200 rounded-xl p-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Course Selection - PHP Form -->
+    <div class="bg-white border-2 border-slate-200 rounded-xl p-6 shadow-lg">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <input type="hidden" name="page" value="reports">
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">نوع التقرير</label>
-                <select id="reportType" onchange="changeReportType()" 
-                    class="w-full px-4 py-2 border border-slate-300 rounded-lg">
-                    <option value="course">تقرير دورة</option>
-                    <option value="student">تقرير طالب</option>
-                    <option value="attendance">تقرير حضور</option>
-                    <option value="grades">تقرير درجات</option>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    <i data-lucide="book-open" class="w-4 h-4 inline mr-1"></i>
+                    اختر الدورة
+                </label>
+                <select name="course_id" class="w-full px-4 py-3 border-2 border-slate-300 rounded-lg" onchange="this.form.submit()">
+                    <option value="">-- اختر دورة لعرض التقرير --</option>
+                    <?php foreach ($myCourses as $course): ?>
+                        <option value="<?php echo $course['course_id']; ?>" <?php echo $selectedCourse == $course['course_id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($course['course_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
-            <div id="courseSelect">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">اختر الدورة</label>
-                <select id="reportCourse" class="w-full px-4 py-2 border border-slate-300 rounded-lg">
-                    <option value="">اختر دورة</option>
-                </select>
-            </div>
-            <div class="flex items-end">
-                <button onclick="generateReport()" 
-                    class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold">
-                    <i data-lucide="file-text" class="w-4 h-4 inline"></i>
-                    إنشاء التقرير
-                </button>
-            </div>
-        </div>
+        </form>
     </div>
 
-    <!-- Report Output -->
-    <div id="reportOutput" class="bg-white border border-slate-200 rounded-xl p-6">
-        <div class="text-center py-12">
-            <i data-lucide="file-text" class="w-16 h-16 mx-auto text-slate-400 mb-4"></i>
-            <h3 class="text-lg font-bold text-slate-700 mb-2">اختر نوع التقرير وأنشئه</h3>
-            <p class="text-slate-500">سيظهر التقرير هنا بعد إنشائه</p>
+    <!-- Report Output - PHP Rendered -->
+    <?php if ($report): ?>
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-8 shadow-lg">
+            <!-- Report Header -->
+            <div class="flex items-center justify-between pb-6 border-b-2 border-slate-200 mb-8">
+                <div>
+                    <h3 class="text-3xl font-bold text-slate-800"><?php echo htmlspecialchars($report['course_name']); ?></h3>
+                    <p class="text-slate-600 mt-2 text-lg">تقرير شامل عن أداء الدورة</p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <i data-lucide="file-text" class="w-8 h-8 text-emerald-600"></i>
+                </div>
+            </div>
+            
+            <!-- Statistics Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <i data-lucide="users" class="w-8 h-8"></i>
+                    </div>
+                    <p class="text-2xl text-emerald-100 mb-1">إجمالي الطلاب</p>
+                    <span class="text-5xl font-bold"><?php echo $report['total_students'] ?? 0; ?></span>
+                </div>
+                
+                <div class="bg-white border-2 border-sky-200 rounded-xl p-6 shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <i data-lucide="percent" class="w-8 h-8 text-sky-600"></i>
+                    </div>
+                    <p class="text-lg text-slate-600 mb-1">متوسط الحضور</p>
+                    <span class="text-5xl font-bold text-slate-800"><?php echo round($report['avg_attendance'] ?? 0, 1); ?>%</span>
+                </div>
+                
+                <div class="bg-white border-2 border-amber-200 rounded-xl p-6 shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <i data-lucide="star" class="w-8 h-8 text-amber-600"></i>
+                    </div>
+                    <p class="text-lg text-slate-600 mb-1">متوسط الدرجات</p>
+                    <span class="text-5xl font-bold text-slate-800"><?php echo round($report['avg_grade'] ?? 0, 1); ?></span>
+                </div>
+            </div>
+            
+            <!-- Top Students -->
+            <div class="bg-slate-50 rounded-xl p-6 mb-8">
+                <h4 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <i data-lucide="trophy" class="w-6 h-6 text-amber-500"></i>
+                    أفضل 5 طلاب
+                </h4>
+                <div class="space-y-3">
+                    <?php if (!empty($report['top_students'])): ?>
+                        <?php foreach ($report['top_students'] as $index => $student): ?>
+                            <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+                                <div class="flex items-center gap-4">
+                                    <span class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white font-bold text-lg flex items-center justify-center shadow">
+                                        <?php echo $index + 1; ?>
+                                    </span>
+                                    <span class="font-bold text-lg text-slate-800"><?php echo htmlspecialchars($student['full_name']); ?></span>
+                                </div>
+                                <span class="text-2xl font-bold text-emerald-600"><?php echo round($student['final_grade'], 1); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p class="text-center text-slate-500 py-8 text-lg">لا توجد درجات مسجلة بعد</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <!-- Performance Chart Placeholder -->
+            <div class="bg-slate-50 rounded-xl p-6">
+                <h4 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <i data-lucide="bar-chart" class="w-6 h-6 text-emerald-600"></i>
+                    توزيع الدرجات
+                </h4>
+                <div style="height: 300px;" id="gradeDistributionChart"></div>
+            </div>
         </div>
-    </div>
+    <?php else: ?>
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-12 text-center shadow-lg">
+            <i data-lucide="file-text" class="w-24 h-24 mx-auto text-slate-400 mb-4"></i>
+            <h3 class="text-2xl font-bold text-slate-700 mb-2">اختر دورة لعرض التقرير</h3>
+            <p class="text-slate-500 text-lg">سيظهر التقرير التفصيلي هنا بعد اختيار الدورة</p>
+        </div>
+    <?php endif; ?>
 </div>
 
+<!-- Charts via Python API -->
+<?php if ($report): ?>
+<script src="<?php echo $platformBaseUrl; ?>/js/chart-loader.js"></script>
 <script>
-async function loadCourses() {
-    const response = await TrainerFeatures.courses.getMyCourses();
-    if (response.success && response.data) {
-        const select = document.getElementById('reportCourse');
-        response.data.forEach(course => {
-            const option = document.createElement('option');
-            option.value = course.id;
-            option.textContent = course.course_name;
-            select.appendChild(option);
+document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+    
+    // Load grade distribution chart from Python API
+    if (typeof ChartLoader !== 'undefined' && document.getElementById('gradeDistributionChart')) {
+        ChartLoader.loadTrainerChart('grade_distribution', 'gradeDistributionChart', {
+            course_id: <?php echo $selectedCourse; ?>,
+            distribution: <?php echo json_encode($report['grade_distribution']); ?>
         });
     }
-}
-
-function changeReportType() {
-    const type = document.getElementById('reportType').value;
-    // TODO: Show/hide appropriate filters based on report type
-}
-
-async function generateReport() {
-    const type = document.getElementById('reportType').value;
-    const courseId = document.getElementById('reportCourse').value;
-    
-    if (!courseId) {
-        DashboardIntegration.ui.showToast('الرجاء اختيار الدورة', 'error');
-        return;
-    }
-    
-    const output = document.getElementById('reportOutput');
-    output.innerHTML = `
-        <div class="text-center py-12">
-            <i data-lucide="loader" class="w-12 h-12 mx-auto animate-spin text-emerald-600 mb-3"></i>
-            <p class="text-slate-700 font-semibold">جاري إنشاء التقرير...</p>
-        </div>
-    `;
-    lucide.createIcons();
-    
-    const response = await TrainerFeatures.reports.getCourseReport(courseId);
-    
-    if (response.success && response.data) {
-        renderReport(response.data, type);
-    } else {
-        output.innerHTML = `
-            <div class="text-center py-12">
-                <i data-lucide="alert-circle" class="w-12 h-12 mx-auto text-red-500 mb-3"></i>
-                <p class="text-red-600 font-semibold">فشل إنشاء التقرير</p>
-            </div>
-        `;
-    }
-    
-    lucide.createIcons();
-}
-
-function renderReport(data, type) {
-    const output = document.getElementById('reportOutput');
-    
-    if (type === 'course') {
-        output.innerHTML = `
-            <div class="space-y-6">
-                <!-- Report Header -->
-                <div class="flex items-center justify-between pb-6 border-b border-slate-200">
-                    <div>
-                        <h3 class="text-2xl font-bold text-slate-800">${data.course_name}</h3>
-                        <p class="text-slate-600 mt-1">تقرير شامل عن الدورة</p>
-                    </div>
-                    <button onclick="exportReport('course', ${data.course_id})" 
-                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        تصدير PDF
-                    </button>
-                </div>
-                
-                <!-- Statistics Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="bg-slate-50 rounded-xl p-6">
-                        <div class="flex items-center justify-between mb-2">
-                            <i data-lucide="users" class="w-6 h-6 text-emerald-600"></i>
-                            <span class="text-3xl font-bold text-slate-800">${data.total_students || 0}</span>
-                        </div>
-                        <p class="text-sm text-slate-600">إجمالي الطلاب</p>
-                    </div>
-                    
-                    <div class="bg-slate-50 rounded-xl p-6">
-                        <div class="flex items-center justify-between mb-2">
-                            <i data-lucide="percent" class="w-6 h-6 text-emerald-600"></i>
-                            <span class="text-3xl font-bold text-slate-800">${data.avg_attendance || 0}%</span>
-                        </div>
-                        <p class="text-sm text-slate-600">متوسط الحضور</p>
-                    </div>
-                    
-                    <div class="bg-slate-50 rounded-xl p-6">
-                        <div class="flex items-center justify-between mb-2">
-                            <i data-lucide="star" class="w-6 h-6 text-emerald-600"></i>
-                            <span class="text-3xl font-bold text-slate-800">${data.avg_grade || 0}</span>
-                        </div>
-                        <p class="text-sm text-slate-600">متوسط الدرجات</p>
-                    </div>
-                    
-                    <div class="bg-slate-50 rounded-xl p-6">
-                        <div class="flex items-center justify-between mb-2">
-                            <i data-lucide="clipboard-check" class="w-6 h-6 text-emerald-600"></i>
-                            <span class="text-3xl font-bold text-slate-800">${data.completed_assignments || 0}%</span>
-                        </div>
-                        <p class="text-sm text-slate-600">إكمال الواجبات</p>
-                    </div>
-                </div>
-                
-                <!-- Performance Chart -->
-                <div class="bg-slate-50 rounded-xl p-6">
-                    <h4 class="text-lg font-bold text-slate-800 mb-4">توزيع الدرجات</h4>
-                    <canvas id="performanceChart" height="80"></canvas>
-                </div>
-                
-                <!-- Top Students -->
-                <div class="bg-slate-50 rounded-xl p-6">
-                    <h4 class="text-lg font-bold text-slate-800 mb-4">أفضل 5 طلاب</h4>
-                    <div class="space-y-3">
-                        ${(data.top_students || []).map((student, index) => `
-                            <div class="flex items-center justify-between p-3 bg-white rounded-lg">
-                                <div class="flex items-center gap-3">
-                                    <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center">
-                                        ${index + 1}
-                                    </span>
-                                    <span class="font-semibold text-slate-800">${student.name}</span>
-                                </div>
-                                <span class="text-lg font-bold text-emerald-600">${student.grade}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Draw chart
-        const ctx = document.getElementById('performanceChart');
-        if (ctx) {
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['90-100', '80-89', '70-79', '60-69', '0-59'],
-                    datasets: [{
-                        label: 'عدد الطلاب',
-                        data: data.grade_distribution || [0, 0, 0, 0, 0],
-                        backgroundColor: 'rgba(16, 185, 129, 0.5)',
-                        borderColor: 'rgb(16, 185, 129)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }
-    }
-    
-    lucide.createIcons();
-}
-
-async function exportReport(type, courseId) {
-    const response = await TrainerFeatures.reports.exportReport(type, courseId, 'pdf');
-    if (response.success) {
-        DashboardIntegration.ui.showToast('تم تصدير التقرير بنجاح', 'success');
-    } else {
-        DashboardIntegration.ui.showToast('فشل تصدير التقرير', 'error');
-    }
-}
-
-function exportAllReports() {
-    DashboardIntegration.ui.showToast('سيتم إضافة ميزة تصدير جميع التقارير قريباً', 'info');
-}
-
-// Initialize
-loadCourses();
-lucide.createIcons();
+});
 </script>
+<?php endif; ?>

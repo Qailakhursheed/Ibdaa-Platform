@@ -101,7 +101,9 @@
             <i data-lucide="pie-chart" class="w-5 h-5 text-sky-600"></i>
             حالة الدورات
         </h3>
-        <canvas id="coursesStatusChart" height="250"></canvas>
+        <div style="height: 300px; position: relative;">
+            <canvas id="coursesStatusChart"></canvas>
+        </div>
     </div>
 
     <!-- Trainers Performance Chart -->
@@ -110,11 +112,20 @@
             <i data-lucide="bar-chart" class="w-5 h-5 text-emerald-600"></i>
             أداء المدربين
         </h3>
-        <canvas id="trainersPerformanceChart" height="250"></canvas>
+        <div style="height: 300px; position: relative;">
+            <canvas id="trainersPerformanceChart"></canvas>
+        </div>
     </div>
 </div>
 
 <!-- Recent Activities -->
+<?php
+// Get pending courses for review
+global $technicalHelper;
+$pendingCourses = $technicalHelper->getPendingCourses(5);
+$recentTickets = $technicalHelper->getRecentSupportTickets(5);
+?>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- Pending Course Reviews -->
     <div class="bg-white rounded-xl shadow-lg p-6">
@@ -125,11 +136,25 @@
             </h3>
             <a href="?page=courses" class="text-sm text-sky-600 hover:text-sky-700 font-semibold">عرض الكل</a>
         </div>
-        <div id="pendingCoursesContainer" class="space-y-3">
-            <div class="text-center py-8 text-slate-500">
-                <i data-lucide="loader" class="w-8 h-8 mx-auto mb-2 animate-spin"></i>
-                <p>جاري التحميل...</p>
-            </div>
+        <div class="space-y-3">
+            <?php if (empty($pendingCourses)): ?>
+                <p class="text-center text-slate-500 py-8">لا توجد دورات معلقة</p>
+            <?php else: ?>
+                <?php foreach ($pendingCourses as $course): ?>
+                    <div class="p-4 border border-slate-200 rounded-lg hover:border-sky-300 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-slate-800"><?php echo htmlspecialchars($course['course_name']); ?></h4>
+                                <p class="text-sm text-slate-500 mt-1"><?php echo htmlspecialchars($course['trainer_name'] ?? 'لم يحدد'); ?></p>
+                                <span class="inline-block mt-2 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">معلق</span>
+                            </div>
+                            <a href="?page=courses&id=<?php echo $course['course_id']; ?>" class="text-sky-600 hover:text-sky-700">
+                                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                            </a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -142,11 +167,27 @@
             </h3>
             <a href="?page=support" class="text-sm text-amber-600 hover:text-amber-700 font-semibold">عرض الكل</a>
         </div>
-        <div id="supportTicketsContainer" class="space-y-3">
-            <div class="text-center py-8 text-slate-500">
-                <i data-lucide="loader" class="w-8 h-8 mx-auto mb-2 animate-spin"></i>
-                <p>جاري التحميل...</p>
-            </div>
+        <div class="space-y-3">
+            <?php if (empty($recentTickets)): ?>
+                <p class="text-center text-slate-500 py-8">لا توجد تذاكر دعم</p>
+            <?php else: ?>
+                <?php foreach ($recentTickets as $ticket): ?>
+                    <div class="p-4 border border-slate-200 rounded-lg hover:border-amber-300 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-slate-800"><?php echo htmlspecialchars($ticket['subject'] ?? 'بدون عنوان'); ?></h4>
+                                <p class="text-sm text-slate-500 mt-1"><?php echo htmlspecialchars($ticket['user_name'] ?? 'مستخدم'); ?></p>
+                                <span class="inline-block mt-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                                    <?php echo $ticket['priority'] ?? 'عادي'; ?>
+                                </span>
+                            </div>
+                            <a href="?page=support&id=<?php echo $ticket['ticket_id']; ?>" class="text-amber-600 hover:text-amber-700">
+                                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                            </a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -171,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: {
                         position: 'bottom',
@@ -198,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -217,73 +258,5 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // Load pending courses
-    loadPendingCourses();
-    
-    // Load support tickets
-    loadSupportTickets();
 });
-
-async function loadPendingCourses() {
-    try {
-        const response = await fetch('../api/courses.php?action=get_pending');
-        const data = await response.json();
-        
-        const container = document.getElementById('pendingCoursesContainer');
-        if (data.success && data.data && data.data.length > 0) {
-            container.innerHTML = data.data.slice(0, 5).map(course => `
-                <div class="p-4 border border-slate-200 rounded-lg hover:border-sky-300 transition-colors">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-slate-800">${course.title}</h4>
-                            <p class="text-sm text-slate-500 mt-1">${course.trainer_name || 'لم يحدد'}</p>
-                            <span class="inline-block mt-2 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">معلق</span>
-                        </div>
-                        <a href="?page=courses&id=${course.course_id}" class="text-sky-600 hover:text-sky-700">
-                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                        </a>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = '<p class="text-center text-slate-500 py-8">لا توجد دورات معلقة</p>';
-        }
-        lucide.createIcons();
-    } catch (error) {
-        console.error('Error loading pending courses:', error);
-        document.getElementById('pendingCoursesContainer').innerHTML = '<p class="text-center text-red-500 py-8">فشل التحميل</p>';
-    }
-}
-
-async function loadSupportTickets() {
-    try {
-        const response = await fetch('../api/support.php?action=get_recent');
-        const data = await response.json();
-        
-        const container = document.getElementById('supportTicketsContainer');
-        if (data.success && data.data && data.data.length > 0) {
-            container.innerHTML = data.data.slice(0, 5).map(ticket => `
-                <div class="p-4 border border-slate-200 rounded-lg hover:border-amber-300 transition-colors">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-slate-800">${ticket.subject}</h4>
-                            <p class="text-sm text-slate-500 mt-1">${ticket.user_name}</p>
-                            <span class="inline-block mt-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">${ticket.priority}</span>
-                        </div>
-                        <a href="?page=support&id=${ticket.ticket_id}" class="text-amber-600 hover:text-amber-700">
-                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                        </a>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = '<p class="text-center text-slate-500 py-8">لا توجد تذاكر دعم</p>';
-        }
-        lucide.createIcons();
-    } catch (error) {
-        console.error('Error loading support tickets:', error);
-        document.getElementById('supportTicketsContainer').innerHTML = '<p class="text-center text-red-500 py-8">فشل التحميل</p>';
-    }
-}
 </script>

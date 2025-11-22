@@ -1,32 +1,36 @@
 <?php
-session_start();
+require_once __DIR__ . '/shared-header.php';
+require_once __DIR__ . '/../includes/student_helper.php';
 
-// Check if user is logged in and has student role
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
-    header('Location: ../../login.php');
-    exit();
+if ($userRole !== 'student') {
+    header('Location: ' . $managerBaseUrl . '/login.php?error=access_denied');
+    exit;
 }
 
-// Get student information
-$student_name = $_SESSION['user_name'];
-$student_email = $_SESSION['user_email'];
-$student_photo = $_SESSION['user_photo'] ?? '../platform/photos/default-avatar.png';
+// Initialize Student Helper - Hybrid System
+$studentHelper = new StudentHelper($conn, $userId);
 
-// Get statistics from database
+// Get student information from the shared session context
+$student_name = $userName;
+$student_email = $userEmail;
+$student_photo = $userPhoto ?: $platformBaseUrl . '/photos/default-avatar.svg';
+
+// Get statistics from StudentHelper (PHP + Database)
+$gpaData = $studentHelper->getGPA();
+$attendanceData = $studentHelper->getAttendanceRate();
+$courses = $studentHelper->getMyCourses();
+$balance = $studentHelper->getAccountBalance();
+
 $stats = [
-    'enrolled_courses' => 0,
-    'completed_courses' => 0,
-    'gpa' => 0.0,
-    'attendance_rate' => 0,
-    'pending_assignments' => 0,
+    'enrolled_courses' => count(array_filter($courses, fn($c) => $c['enrollment_status'] === 'active')),
+    'completed_courses' => count(array_filter($courses, fn($c) => $c['enrollment_status'] === 'completed')),
+    'gpa' => $gpaData['gpa'],
+    'attendance_rate' => $attendanceData['rate'],
+    'pending_assignments' => 0, // Will be loaded via AJAX if needed
     'total_materials' => 0,
     'unread_notifications' => 0,
-    'balance' => 0
+    'balance' => $balance
 ];
-
-// TODO: Fetch actual data from database
-// $stmt = $conn->prepare("SELECT COUNT(*) as enrolled FROM enrollments WHERE student_id = ?");
-// ... etc
 
 // Get current page
 $page = $_GET['page'] ?? 'overview';
@@ -157,7 +161,7 @@ $page = $_GET['page'] ?? 'overview';
                         <p class="font-semibold text-slate-800 text-sm"><?php echo htmlspecialchars($student_name); ?></p>
                         <p class="text-xs text-slate-500">طالب</p>
                     </div>
-                    <a href="../../logout.php" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <a href="<?php echo $managerBaseUrl; ?>/logout.php" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                         <i data-lucide="log-out" class="w-5 h-5"></i>
                     </a>
                 </div>
@@ -191,15 +195,8 @@ $page = $_GET['page'] ?? 'overview';
                     </div>
                     
                     <div class="flex items-center gap-4">
-                        <!-- Notifications -->
-                        <button class="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                            <i data-lucide="bell" class="w-5 h-5"></i>
-                            <?php if ($stats['unread_notifications'] > 0): ?>
-                                <span class="notification-badge absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                                    <?php echo $stats['unread_notifications']; ?>
-                                </span>
-                            <?php endif; ?>
-                        </button>
+                        <!-- Unified Notifications Bell Component -->
+                        <?php include __DIR__ . '/components/notifications-bell.php'; ?>
                         
                         <!-- Search -->
                         <div class="relative">

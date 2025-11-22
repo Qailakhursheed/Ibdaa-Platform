@@ -1,0 +1,273 @@
+<?php
+require_once __DIR__ . '/../includes/session_security.php';
+SessionSecurity::startSecureSession();
+
+// أمان: السماح للمدرب فقط
+$user_id = $_SESSION['user_id'] ?? null;
+$user_role = $_SESSION['user_role'] ?? ($_SESSION['role'] ?? null);
+if (!$user_id || $user_role !== 'trainer') {
+    header('Location: login.php');
+    exit;
+}
+require_once __DIR__ . '/../platform/db.php';
+$trainer_name = $_SESSION['full_name'] ?? 'مدرب';
+?>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <title>لوحة المدرب | منصة إبداع</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
+    <style>
+        body { background: #f1f5f9; font-family: 'Tajawal', sans-serif; }
+        .modal-backdrop { position: fixed; inset:0; background: rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50; }
+        .modal-backdrop.visible { display:flex; }
+        .modal-content { animation: pop .25s ease; }
+        @keyframes pop { from { transform: scale(.95); opacity:0;} to { transform: scale(1); opacity:1;} }
+        table thead th { background:#f8fafc; font-weight:600; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="bg-white shadow-sm mb-8">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center text-gray-800">
+                <i data-lucide="user" class="w-6 h-6 ml-2 text-sky-600"></i>
+                مرحباً، <?= htmlspecialchars($trainer_name, ENT_QUOTES, 'UTF-8'); ?>
+            </h1>
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <button id="openGradesBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center">
+                    <i data-lucide="graduation-cap" class="w-5 h-5 ml-2"></i> إدارة الدرجات
+                </button>
+                <a href="logout.php" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center">
+                    <i data-lucide="log-out" class="w-5 h-5 ml-2"></i> تسجيل الخروج
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 space-y-10" id="trainerMain">
+        <section id="coursesSection" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold flex items-center text-gray-800"><i data-lucide="layers" class="w-5 h-5 ml-2 text-sky-600"></i> دوراتي</h2>
+                <span id="coursesCount" class="text-sm text-gray-500"></span>
+            </div>
+            <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <section id="studentsSection" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold flex items-center text-gray-800"><i data-lucide="users" class="w-5 h-5 ml-2 text-green-600"></i> طلابي</h2>
+                <span id="studentsCount" class="text-sm text-gray-500"></span>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <table class="w-full text-sm text-right">
+                    <thead>
+                        <tr class="text-gray-700">
+                            <th class="px-4 py-3">الاسم</th>
+                            <th class="px-4 py-3">البريد</th>
+                            <th class="px-4 py-3">الدورة</th>
+                            <th class="px-4 py-3">الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody" class="divide-y divide-gray-100 bg-white"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal إدارة الدرجات -->
+    <div id="gradesModal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl m-4 modal-content max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800 flex items-center"><i data-lucide="graduation-cap" class="w-6 h-6 ml-2 text-indigo-600"></i> إدارة الدرجات</h3>
+                <button id="closeGradesModalBtn" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">اختيار دورة</label>
+                        <select id="gradesCourseSelect" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- اختر دورة --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">اسم التقييم</label>
+                        <input type="text" id="assignment_name" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="مثال: اختبار نهائي">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">الدرجة القصوى</label>
+                        <input type="number" id="max_grade" value="100" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
+                </div>
+
+                <div id="gradesStudentsContainer" class="hidden">
+                    <table class="w-full text-sm text-right mt-4">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-700">
+                                <th class="px-3 py-2">الطالب</th>
+                                <th class="px-3 py-2">البريد</th>
+                                <th class="px-3 py-2">الدرجة</th>
+                                <th class="px-3 py-2">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gradesEntryBody" class="divide-y divide-gray-100 bg-white"></tbody>
+                    </table>
+                    <div class="flex justify-end mt-4">
+                        <button id="saveGradesBatchBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 flex items-center">
+                            <i data-lucide="save" class="w-5 h-5 ml-2"></i> حفظ الدرجات
+                        </button>
+                    </div>
+                    <div id="gradesMessageBox" class="hidden mt-4 p-3 rounded-lg text-sm"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const trainerData = { courses: [], students: [] };
+
+    // تحميل البيانات الأولية
+    async function loadTrainerData() {
+        try {
+            const res = await fetch('api/get_trainer_data.php');
+            const data = await res.json();
+            if (data.success) {
+                trainerData.courses = data.courses || [];
+                trainerData.students = data.students || [];
+                renderCourses();
+                renderStudents();
+                fillCoursesSelect();
+            } else {
+                alert(data.message || 'فشل تحميل بيانات المدرب');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('خطأ في الاتصال بالخادم');
+        }
+    }
+
+    function renderCourses() {
+        const grid = document.getElementById('coursesGrid');
+        const countSpan = document.getElementById('coursesCount');
+        countSpan.textContent = trainerData.courses.length + ' دورة';
+        grid.innerHTML = trainerData.courses.map(c => `
+            <div class='bg-white rounded-xl shadow-sm p-5 relative'>
+                <div class='flex justify-between mb-2'>
+                    <span class='px-2 py-1 text-xs font-semibold rounded-full bg-sky-50 text-sky-600'>${c.category || ''}</span>
+                    <span class='text-xs text-gray-500'>${c.status}</span>
+                </div>
+                <h3 class='font-bold text-lg mb-2'>${c.title}</h3>
+                <p class='text-xs text-gray-500 mb-3'>مدة: ${c.duration || '-'} | مشتركين: ${c.enrolled_count || 0}</p>
+                <div class='text-xs text-gray-400'>${c.start_date || ''} - ${c.end_date || ''}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderStudents() {
+        const body = document.getElementById('studentsTableBody');
+        const countSpan = document.getElementById('studentsCount');
+        countSpan.textContent = trainerData.students.length + ' طالب';
+        body.innerHTML = trainerData.students.map(s => `
+            <tr>
+                <td class='px-4 py-2 font-medium text-gray-800'>${s.full_name}</td>
+                <td class='px-4 py-2 text-gray-600'>${s.email}</td>
+                <td class='px-4 py-2 text-gray-600'>${s.course_title || '-'}</td>
+                <td class='px-4 py-2'><span class='px-2 py-1 rounded-full text-xs ${s.enrollment_status==='completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}'>${s.enrollment_status}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    function fillCoursesSelect() {
+        const sel = document.getElementById('gradesCourseSelect');
+        trainerData.courses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.course_id;
+            opt.textContent = c.title;
+            sel.appendChild(opt);
+        });
+    }
+
+    // عند اختيار دورة في نافذة الدرجات
+    document.getElementById('gradesCourseSelect').addEventListener('change', (e) => {
+        const courseId = e.target.value;
+        if (!courseId) {
+            document.getElementById('gradesStudentsContainer').classList.add('hidden');
+            return;
+        }
+        // عرض الطلاب المرتبطين بهذه الدورة فقط
+        const filtered = trainerData.students.filter(s => String(s.course_id) === String(courseId));
+        const tbody = document.getElementById('gradesEntryBody');
+        tbody.innerHTML = filtered.map(s => `
+            <tr>
+                <td class='px-3 py-2 font-medium'>${s.full_name}</td>
+                <td class='px-3 py-2 text-gray-600 text-xs'>${s.email}</td>
+                <td class='px-3 py-2'>
+                    <input type='number' step='0.01' min='0' max='100' class='w-24 border-gray-300 rounded-lg px-2 py-1 text-right grade-input' data-student-id='${s.id}' placeholder='0'>
+                </td>
+                <td class='px-3 py-2'>
+                    <input type='text' class='w-full border-gray-300 rounded-lg px-2 py-1 text-sm note-input' data-student-id='${s.id}' placeholder='ملاحظات'>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('gradesStudentsContainer').classList.remove('hidden');
+    });
+
+    // حفظ دفعة واحدة
+    document.getElementById('saveGradesBatchBtn').addEventListener('click', async () => {
+        const courseId = document.getElementById('gradesCourseSelect').value;
+        const assignmentName = document.getElementById('assignment_name').value || 'تقييم';
+        const maxGrade = parseFloat(document.getElementById('max_grade').value || '100');
+        const gradeInputs = document.querySelectorAll('.grade-input');
+        const notesInputs = document.querySelectorAll('.note-input');
+
+        const gradesPayload = [];
+        gradeInputs.forEach(inp => {
+            const val = parseFloat(inp.value || '');
+            if (!isNaN(val) && val >= 0) {
+                const studentId = parseInt(inp.getAttribute('data-student-id'));
+                const noteField = Array.from(notesInputs).find(n => n.getAttribute('data-student-id') === String(studentId));
+                gradesPayload.push({ user_id: studentId, course_id: parseInt(courseId), assignment_name: assignmentName, grade_value: val, max_grade: maxGrade, notes: noteField ? noteField.value : '' });
+            }
+        });
+
+        if (gradesPayload.length === 0) {
+            alert('لا توجد درجات صالحة للحفظ');
+            return;
+        }
+
+        try {
+            const res = await fetch('api/manage_grades.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'batch_create', grades: gradesPayload })
+            });
+            const data = await res.json();
+            const box = document.getElementById('gradesMessageBox');
+            box.classList.remove('hidden');
+            if (data.success) {
+                box.className = 'mt-4 p-3 rounded-lg text-sm bg-green-100 text-green-800';
+                box.textContent = data.message;
+            } else {
+                box.className = 'mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800';
+                box.textContent = data.message || 'فشل حفظ الدرجات';
+            }
+        } catch (e) {
+            console.error(e);
+            alert('خطأ أثناء حفظ الدرجات');
+        }
+    });
+
+    // التحكم في فتح/إغلاق نافذة الدرجات
+    const gradesModal = document.getElementById('gradesModal');
+    document.getElementById('openGradesBtn').addEventListener('click', ()=> gradesModal.classList.add('visible'));
+    document.getElementById('closeGradesModalBtn').addEventListener('click', ()=> gradesModal.classList.remove('visible'));
+    gradesModal.addEventListener('click', (e)=> { if (e.target === gradesModal) gradesModal.classList.remove('visible'); });
+
+    // بدء التحميل
+    loadTrainerData();
+    lucide.createIcons();
+    </script>
+</body>
+</html>

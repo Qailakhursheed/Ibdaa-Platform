@@ -61,7 +61,7 @@ $completed_stats = $conn->query($completed_query)->fetch_assoc();
                 </div>
                 <div class="flex items-center gap-4">
                     <span>مرحباً، <?php echo htmlspecialchars($user_name); ?></span>
-                    <a href="../platform/logout.php" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
+                    <a href="logout.php" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
                         تسجيل الخروج
                     </a>
                 </div>

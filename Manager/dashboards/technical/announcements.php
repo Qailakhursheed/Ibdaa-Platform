@@ -228,7 +228,7 @@ async function loadAnnouncements() {
     const target = document.getElementById('filterTarget').value;
     
     try {
-        const response = await fetch(`../api/manage_announcements_ai.php?action=list&search=${search}&type=${type}&target=${target}`);
+        const response = await fetch(`<?php echo $managerBaseUrl; ?>/api/manage_announcements_ai.php?action=list&search=${search}&type=${type}&target=${target}`);
         const result = await response.json();
         
         if (result.success) {
@@ -363,7 +363,7 @@ async function handleSubmitAnnouncement(e) {
     const action = announcementId ? 'update' : 'create';
     
     try {
-        const response = await fetch(`../api/manage_announcements_ai.php?action=${action}`, {
+        const response = await fetch(`<?php echo $managerBaseUrl; ?>/api/manage_announcements_ai.php?action=${action}`, {
             method: 'POST',
             body: formData
         });
@@ -385,7 +385,7 @@ async function handleSubmitAnnouncement(e) {
 // View announcement
 async function viewAnnouncement(id) {
     try {
-        const response = await fetch(`../api/manage_announcements_ai.php?action=get&id=${id}`);
+        const response = await fetch(`<?php echo $managerBaseUrl; ?>/api/manage_announcements_ai.php?action=get&id=${id}`);
         const result = await response.json();
         
         if (result.success) {
@@ -448,7 +448,7 @@ function closeViewAnnouncement() {
 // Edit announcement
 async function editAnnouncement(id) {
     try {
-        const response = await fetch(`../api/manage_announcements_ai.php?action=get&id=${id}`);
+        const response = await fetch(`<?php echo $managerBaseUrl; ?>/api/manage_announcements_ai.php?action=get&id=${id}`);
         const result = await response.json();
         
         if (result.success) {
@@ -479,7 +479,7 @@ async function deleteAnnouncement(id) {
     }
     
     try {
-        const response = await fetch(`../api/manage_announcements_ai.php?action=delete&id=${id}`, {
+        const response = await fetch(`<?php echo $managerBaseUrl; ?>/api/manage_announcements_ai.php?action=delete&id=${id}`, {
             method: 'DELETE'
         });
         const result = await response.json();

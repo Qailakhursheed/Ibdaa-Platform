@@ -5,48 +5,22 @@
  */
 
 require_once __DIR__ . '/shared-header.php';
+require_once __DIR__ . '/../includes/technical_helper.php';
 
 if ($userRole !== 'technical') {
-    header('Location: ../login.php?error=access_denied');
+    header('Location: ' . $managerBaseUrl . '/login.php?error=access_denied');
     exit;
 }
+
+// Initialize Technical Helper
+$technicalHelper = new TechnicalHelper($conn, $userId);
 
 // Get current page
 $currentPage = $_GET['page'] ?? 'overview';
 
-// Load statistics
-$stats = [
-    'total_courses' => 0,
-    'active_courses' => 0,
-    'pending_courses' => 0,
-    'total_trainers' => 0,
-    'active_trainers' => 0,
-    'support_tickets' => 0,
-    'pending_reviews' => 0
-];
-
+// Load statistics using TechnicalHelper
 try {
-    // Get courses statistics
-    $stmt = $conn->query("SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
-        FROM courses");
-    $courseStats = $stmt->fetch_assoc();
-    $stats['total_courses'] = $courseStats['total'] ?? 0;
-    $stats['active_courses'] = $courseStats['active'] ?? 0;
-    $stats['pending_courses'] = $courseStats['pending'] ?? 0;
-    
-    // Get trainers statistics
-    $stmt = $conn->query("SELECT COUNT(*) as total FROM users WHERE role = 'trainer'");
-    $stats['total_trainers'] = $stmt->fetch_assoc()['total'] ?? 0;
-    
-    // Get support tickets (if table exists)
-    $stmt = $conn->query("SHOW TABLES LIKE 'support_tickets'");
-    if ($stmt->num_rows > 0) {
-        $stmt = $conn->query("SELECT COUNT(*) as total FROM support_tickets WHERE status = 'pending'");
-        $stats['support_tickets'] = $stmt->fetch_assoc()['total'] ?? 0;
-    }
+    $stats = $technicalHelper->getStatistics();
 } catch (Exception $e) {
     error_log("Technical Dashboard Stats Error: " . $e->getMessage());
 }
@@ -57,7 +31,7 @@ try {
     <aside class="w-72 bg-white border-l border-slate-200 shadow-lg fixed h-screen overflow-y-auto">
         <div class="px-6 py-6 border-b border-slate-200 text-center bg-gradient-to-br from-sky-50 to-blue-50">
             <div class="relative inline-block">
-                <img src="<?php echo $userPhoto ?? '../platform/photos/Sh.jpg'; ?>" 
+                <img src="<?php echo $userPhoto ?? ($platformBaseUrl . '/photos/Sh.jpg'); ?>" 
                      alt="<?php echo htmlspecialchars($userName); ?>" 
                      class="mx-auto mb-3 w-20 h-20 rounded-full border-4 border-sky-500 object-cover shadow-lg">
                 <span class="absolute bottom-3 right-0 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full"></span>
@@ -176,7 +150,7 @@ try {
         </nav>
         
         <div class="p-4 border-t border-slate-200 mt-auto">
-            <a href="../logout.php" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-all font-semibold">
+            <a href="<?php echo $managerBaseUrl; ?>/logout.php" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-all font-semibold">
                 <i data-lucide="log-out" class="w-5 h-5"></i>
                 <span>تسجيل الخروج</span>
             </a>
@@ -196,11 +170,8 @@ try {
                     <p class="text-sm text-slate-500 mt-1">إدارة شاملة للمحتوى التدريبي والجودة</p>
                 </div>
                 <div class="flex items-center gap-4">
-                    <!-- Notifications -->
-                    <button id="notificationsBtn" class="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                        <i data-lucide="bell" class="w-6 h-6 text-slate-600"></i>
-                        <span id="notificationBadge" class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold hidden">0</span>
-                    </button>
+                    <!-- Unified Notifications Bell Component -->
+                    <?php include __DIR__ . '/components/notifications-bell.php'; ?>
                     
                     <!-- User Info -->
                     <div class="text-left">
@@ -272,99 +243,35 @@ try {
 <!-- Modals Container -->
 <div id="modalsContainer"></div>
 
-<!-- Load Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="../js/dashboard-integration.js"></script>
-<script src="../js/technical-features.js"></script>
+<!-- Charts via Python API -->
+<script src="<?php echo $platformBaseUrl; ?>/js/chart-loader.js"></script>
 
 <script>
-// Initialize Lucide Icons
-lucide.createIcons();
-
-// Set current user for integration system
+// Initialize current user for dashboard integration
 window.CURRENT_USER = {
     id: <?php echo $userId; ?>,
-    name: '<?php echo htmlspecialchars($userName); ?>',
-    email: '<?php echo htmlspecialchars($userEmail ?? ''); ?>',
+    name: '<?php echo addslashes($userName); ?>',
+    email: '<?php echo addslashes($userEmail ?? ''); ?>',
     role: 'technical'
 };
 
-// Initialize notifications
-async function loadNotifications() {
-    try {
-        const response = await DashboardIntegration.api.notifications.getAll();
-        if (response.success && response.data) {
-            const unreadCount = response.data.filter(n => !n.is_read).length;
-            const badge = document.getElementById('notificationBadge');
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.classList.remove('hidden');
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load notifications:', error);
-    }
-}
-
-// Initialize chat unread count
-async function loadChatUnread() {
-    try {
-        const response = await DashboardIntegration.api.chat.getConversations();
-        if (response.success && response.data) {
-            const unreadCount = response.data.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
-            const badge = document.getElementById('unreadMessages');
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.classList.remove('hidden');
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load chat:', error);
-    }
-}
-
-// Load data on page load
+// Load integration libraries
 document.addEventListener('DOMContentLoaded', function() {
-    loadNotifications();
-    loadChatUnread();
-    
-    // Refresh every minute
-    setInterval(loadNotifications, 60000);
-    setInterval(loadChatUnread, 30000);
-    
-    console.log('✅ Technical Dashboard Initialized');
+    // Load dashboard integration script
+    const script = document.createElement('script');
+    script.src = '../js/dashboard-integration.js';
+    script.onload = function() {
+        console.log('✅ Dashboard Integration Loaded');
+    };
+    document.head.appendChild(script);
 });
 
-// Notifications button click
-document.getElementById('notificationsBtn')?.addEventListener('click', async function() {
-    try {
-        const response = await DashboardIntegration.api.notifications.getAll();
-        if (response.success) {
-            // Show notifications modal
-            const notificationsHTML = response.data.map(n => `
-                <div class="p-4 border-b border-slate-200 hover:bg-slate-50 cursor-pointer ${!n.is_read ? 'bg-blue-50' : ''}">
-                    <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-${n.type === 'error' ? 'red' : n.type === 'success' ? 'emerald' : 'sky'}-100 flex items-center justify-center">
-                            <i data-lucide="bell" class="w-5 h-5 text-${n.type === 'error' ? 'red' : n.type === 'success' ? 'emerald' : 'sky'}-600"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-slate-800">${n.title}</h4>
-                            <p class="text-sm text-slate-600 mt-1">${n.message}</p>
-                            <p class="text-xs text-slate-400 mt-1">${new Date(n.created_at).toLocaleString('ar-EG')}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-            
-            DashboardIntegration.ui.showModal('الإشعارات', notificationsHTML || '<p class="text-center text-slate-500 py-8">لا توجد إشعارات</p>', [
-                { text: 'إغلاق', class: 'bg-slate-600 text-white hover:bg-slate-700', onclick: 'this.closest(".fixed").remove()' }
-            ]);
-            
-            lucide.createIcons();
-        }
-    } catch (error) {
-        DashboardIntegration.ui.showToast('فشل تحميل الإشعارات', 'error');
-    }
+// Initialize Lucide Icons
+lucide.createIcons();
+
+// Load Python API charts if needed
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart loading will be handled per page
 });
 </script>
 </body>

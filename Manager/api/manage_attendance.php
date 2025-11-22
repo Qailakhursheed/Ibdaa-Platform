@@ -1,33 +1,20 @@
 <?php
-session_start();
+/**
+ * Attendance Management API
+ * إدارة الحضور - محمي بنظام الحماية المركزي
+ */
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+require_once __DIR__ . '/api_auth.php';
+require_once __DIR__ . '/../../database/db.php';
 
-register_shutdown_function(function () {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
-        http_response_code(500);
-        if (!headers_sent()) {
-            header('Content-Type: application/json; charset=utf-8');
-        }
-        $payload = [
-            'success' => false,
-            'message' => 'CRASH (Fatal Error): ' . $error['message'] . ' in ' . $error['file'] . ' on line ' . $error['line']
-        ];
-        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        echo $encoded === false
-            ? '{"success":false,"message":"Fatal Error & JSON encoding failed."}'
-            : $encoded;
-    }
-});
+// التحقق من الصلاحيات (مدراء ومدربين)
+$user = APIAuth::requireAuth(['manager', 'technical', 'trainer']);
+$userId = $user['user_id'];
+$userRole = $user['role'];
+
+APIAuth::rateLimit(120, 60);
 
 header('Content-Type: application/json; charset=utf-8');
-
-require_once __DIR__ . '/../../platform/db.php';
-
-$userId = $_SESSION['user_id'] ?? null;
-$userRole = $_SESSION['user_role'] ?? ($_SESSION['role'] ?? null);
 
 if (!$userId || !in_array($userRole, ['manager', 'technical', 'trainer'], true)) {
     echo json_encode(['success' => false, 'message' => 'غير مصرح لك'], JSON_UNESCAPED_UNICODE);

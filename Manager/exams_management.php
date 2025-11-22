@@ -25,7 +25,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager'
         <!-- Header -->
         <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
-                <a href="dashboard.php" class="text-gray-500 hover:text-blue-600 transition-colors">
+                <a href="dashboard_router.php" class="text-gray-500 hover:text-blue-600 transition-colors">
                     <i data-lucide="arrow-right" class="w-6 h-6"></i>
                 </a>
                 <h1 class="text-2xl font-bold text-gray-800">إدارة الاختبارات الذكية</h1>

@@ -59,6 +59,12 @@ if (AntiDetection::detectBot()) {
       </div>
     <?php endif; ?>
 
+    <?php if(isset($_GET['success'])): ?>
+      <div class="bg-emerald-500/20 border border-emerald-500 text-white px-4 py-3 rounded-lg mb-4">
+        <?php echo htmlspecialchars($_GET['success']); ?>
+      </div>
+    <?php endif; ?>
+
     <form class="space-y-5" action="register.php" method="POST" enctype="multipart/form-data">
       <?php echo CSRF::getTokenField(); ?>
       <?php echo AntiDetection::getProtectedFormFields(); ?>
@@ -119,15 +125,15 @@ if (AntiDetection::detectBot()) {
     </p>
   </div>
 
-  <script src="/platform/js/yemen_locations.js"></script>
+  <script src="js/yemen_locations.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       if (window.YemenLocations) YemenLocations.init('governorate','district','district_other');
     });
   </script>
   <!-- Chatbot widget styles & script -->
-  <link rel="stylesheet" href="/platform/css/chatbot.css">
-  <script src="/platform/js/chatbot.js"></script>
+  <link rel="stylesheet" href="css/chatbot.css">
+  <script src="js/chatbot.js"></script>
   <script src="js/watermark.js"></script>
 </body>
 </html>

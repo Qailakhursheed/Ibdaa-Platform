@@ -48,7 +48,8 @@
     </div>
   </div>
 </header>
-<!-- Chatbot widget (global) -->
-<link rel="stylesheet" href="/platform/css/chatbot.css">
-<script defer src="/platform/js/chatbot.js"></script>
 <script src="js/watermark.js"></script>
+
+<!-- AI Chatbot Widget -->
+<link rel="stylesheet" href="css/chatbot.css">
+<script src="js/chatbot.js"></script>

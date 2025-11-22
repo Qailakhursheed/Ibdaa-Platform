@@ -1,25 +1,42 @@
+<?php
+// Load courses and grades using TrainerHelper
+global $trainerHelper;
+$myCourses = $trainerHelper->getMyCourses();
+$courseId = $_GET['course_id'] ?? ($myCourses[0]['course_id'] ?? null);
+$grades = [];
+if ($courseId) {
+    $grades = $trainerHelper->getCourseGrades($courseId);
+}
+$avgGrade = count($grades) > 0 ? array_sum(array_column($grades, 'total_grade')) / count($grades) : 0;
+$topGrade = count($grades) > 0 ? max(array_column($grades, 'total_grade')) : 0;
+$lowGrade = count($grades) > 0 ? min(array_column($grades, 'total_grade')) : 0;
+?>
+
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">إدارة الدرجات</h2>
-            <p class="text-slate-600 mt-1">تسجيل ومراجعة درجات الطلاب</p>
+            <p class="text-slate-600 mt-1">تسجيل ومراجعة درجات الطلاب - <?php echo count($grades); ?> تقييم</p>
         </div>
-        <button onclick="addNewGrade()" 
-            class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold flex items-center gap-2">
-            <i data-lucide="plus" class="w-5 h-5"></i>
-            إضافة درجة
-        </button>
     </div>
 
-    <!-- Course Selection -->
-    <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <!-- Course Selection - PHP Generated -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-md">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">اختر الدورة</label>
-                <select id="gradeCourse" onchange="loadGrades()" 
-                    class="w-full px-4 py-2 border border-slate-300 rounded-lg">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    <i data-lucide="book-open" class="w-4 h-4 inline mr-1"></i>
+                    اختر الدورة
+                </label>
+                <select id="gradeCourse" onchange="window.location.href='?page=grades&course_id='+this.value" 
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg hover:border-emerald-500 focus:border-emerald-500 transition-all">
                     <option value="">اختر دورة لعرض الدرجات</option>
+                    <?php foreach ($myCourses as $course): ?>
+                        <option value="<?php echo $course['course_id']; ?>" <?php echo $courseId == $course['course_id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($course['course_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <div>
@@ -90,147 +107,72 @@
                         <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">الإجراءات</th>
                     </tr>
                 </thead>
-                <tbody id="gradesTable">
-                    <tr>
-                        <td colspan="8" class="px-6 py-12 text-center">
-                            <i data-lucide="clipboard" class="w-8 h-8 mx-auto text-slate-400 mb-3"></i>
-                            <p class="text-slate-500">اختر دورة لعرض الدرجات</p>
-                        </td>
-                    </tr>
+                <tbody>
+                    <?php if (!$courseId): ?>
+                        <tr>
+                            <td colspan="8" class="px-6 py-16 text-center">
+                                <i data-lucide="clipboard" class="w-16 h-16 mx-auto text-slate-400 mb-4"></i>
+                                <p class="text-xl text-slate-600 font-semibold">اختر دورة لعرض الدرجات</p>
+                            </td>
+                        </tr>
+                    <?php elseif (empty($grades)): ?>
+                        <tr>
+                            <td colspan="8" class="px-6 py-16 text-center">
+                                <i data-lucide="clipboard-x" class="w-16 h-16 mx-auto text-slate-400 mb-4"></i>
+                                <p class="text-xl text-slate-600 font-semibold">لا توجد درجات مسجلة</p>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($grades as $gradeRow): 
+                            $total = ($gradeRow['assignments'] ?? 0) + ($gradeRow['quizzes'] ?? 0) + 
+                                     ($gradeRow['midterm'] ?? 0) + ($gradeRow['final'] ?? 0);
+                            $gradeLevel = $total >= 90 ? 'ممتاز' : ($total >= 80 ? 'جيد جداً' : 
+                                          ($total >= 70 ? 'جيد' : ($total >= 60 ? 'مقبول' : 'ضعيف')));
+                            $gradeColor = $total >= 80 ? 'emerald' : ($total >= 60 ? 'amber' : 'red');
+                        ?>
+                            <tr class="border-b border-slate-100 hover:bg-emerald-50 transition-all duration-200">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <img src="<?php echo htmlspecialchars($gradeRow['student_photo'] ?? $platformBaseUrl . '/photos/default-avatar.png'); ?>" 
+                                            class="w-12 h-12 rounded-full object-cover border-2 border-emerald-200 shadow-md">
+                                        <div>
+                                            <p class="font-bold text-slate-800"><?php echo htmlspecialchars($gradeRow['student_name']); ?></p>
+                                            <p class="text-sm text-slate-500"><?php echo htmlspecialchars($gradeRow['student_email']); ?></p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-sm font-bold text-slate-700"><?php echo $gradeRow['assignments'] ?? 0; ?></span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-sm font-bold text-slate-700"><?php echo $gradeRow['quizzes'] ?? 0; ?></span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-sm font-bold text-slate-700"><?php echo $gradeRow['midterm'] ?? 0; ?></span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-sm font-bold text-slate-700"><?php echo $gradeRow['final'] ?? 0; ?></span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-xl font-extrabold text-<?php echo $gradeColor; ?>-600"><?php echo $total; ?></span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="px-4 py-1.5 text-xs font-bold rounded-full bg-<?php echo $gradeColor; ?>-100 text-<?php echo $gradeColor; ?>-700 border border-<?php echo $gradeColor; ?>-300">
+                                        <?php echo $gradeLevel; ?>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <a href="?page=grades&course_id=<?php echo $courseId; ?>&edit_student=<?php echo $gradeRow['student_id']; ?>" 
+                                        class="px-4 py-2 text-sm bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all border border-emerald-200 font-bold inline-block">
+                                        <i data-lucide="edit" class="w-4 h-4 inline mr-1"></i>
+                                        تعديل
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
-<script>
-async function loadCourses() {
-    const response = await TrainerFeatures.courses.getMyCourses();
-    if (response.success && response.data) {
-        const select = document.getElementById('gradeCourse');
-        response.data.forEach(course => {
-            const option = document.createElement('option');
-            option.value = course.id;
-            option.textContent = course.course_name;
-            select.appendChild(option);
-        });
-    }
-}
-
-async function loadGrades() {
-    const courseId = document.getElementById('gradeCourse').value;
-    if (!courseId) return;
-    
-    const response = await TrainerFeatures.grades.getGrades(courseId);
-    
-    if (response.success && response.data) {
-        const grades = response.data;
-        
-        // Calculate statistics
-        const gradedStudents = grades.filter(g => g.total > 0).length;
-        const avgGrade = grades.reduce((sum, g) => sum + (g.total || 0), 0) / grades.length || 0;
-        const topGrade = Math.max(...grades.map(g => g.total || 0));
-        const lowGrade = Math.min(...grades.filter(g => g.total > 0).map(g => g.total));
-        
-        document.getElementById('gradedStudents').textContent = gradedStudents;
-        document.getElementById('avgGrade').textContent = avgGrade.toFixed(1);
-        document.getElementById('topGrade').textContent = topGrade;
-        document.getElementById('lowGrade').textContent = lowGrade > 0 ? lowGrade : 0;
-        
-        renderGrades(grades);
-    }
-    
-    lucide.createIcons();
-}
-
-function renderGrades(grades) {
-    const tbody = document.getElementById('gradesTable');
-    
-    if (grades.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="px-6 py-12 text-center">
-                    <i data-lucide="clipboard-x" class="w-8 h-8 mx-auto text-slate-400 mb-3"></i>
-                    <p class="text-slate-600">لا توجد درجات مسجلة</p>
-                </td>
-            </tr>
-        `;
-        lucide.createIcons();
-        return;
-    }
-    
-    tbody.innerHTML = grades.map(grade => {
-        const total = (grade.assignments || 0) + (grade.quizzes || 0) + (grade.midterm || 0) + (grade.final || 0);
-        const gradeLevel = total >= 90 ? 'ممتاز' : total >= 80 ? 'جيد جداً' : total >= 70 ? 'جيد' : total >= 60 ? 'مقبول' : 'ضعيف';
-        const gradeColor = total >= 80 ? 'emerald' : total >= 60 ? 'amber' : 'red';
-        
-        return `
-            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                        <img src="${grade.student_photo || '../platform/photos/default-avatar.png'}" 
-                            class="w-10 h-10 rounded-full object-cover">
-                        <div>
-                            <p class="font-semibold text-slate-800">${grade.student_name}</p>
-                            <p class="text-sm text-slate-500">${grade.student_email}</p>
-                        </div>
-                    </div>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-sm font-semibold text-slate-700">${grade.assignments || 0}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-sm font-semibold text-slate-700">${grade.quizzes || 0}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-sm font-semibold text-slate-700">${grade.midterm || 0}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-sm font-semibold text-slate-700">${grade.final || 0}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-lg font-bold text-${gradeColor}-600">${total}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-${gradeColor}-100 text-${gradeColor}-700">
-                        ${gradeLevel}
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <button onclick="editGrade(${grade.student_id}, ${grade.course_id})" 
-                        class="px-3 py-1.5 text-sm bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100">
-                        <i data-lucide="edit" class="w-4 h-4 inline"></i>
-                        تعديل
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-    
-    lucide.createIcons();
-}
-
-function addNewGrade() {
-    const courseId = document.getElementById('gradeCourse').value;
-    if (!courseId) {
-        DashboardIntegration.ui.showToast('الرجاء اختيار الدورة أولاً', 'error');
-        return;
-    }
-    
-    // TODO: Show modal for adding grade
-    DashboardIntegration.ui.showToast('سيتم إضافة نموذج إدخال الدرجات قريباً', 'info');
-}
-
-function editGrade(studentId, courseId) {
-    // TODO: Show edit grade modal
-    DashboardIntegration.ui.showToast('سيتم إضافة ميزة التعديل قريباً', 'info');
-}
-
-function filterGrades() {
-    // TODO: Implement filtering
-}
-
-// Initialize
-loadCourses();
-lucide.createIcons();
-</script>

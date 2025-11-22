@@ -1,11 +1,15 @@
 <?php
 /**
- * 🎨 Advanced AI-Powered Background Removal System
- * Ultra-advanced photo processing with multiple AI providers
- * Converts any photo background to pure white automatically
+ * photo_background_remover - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 header('Content-Type: application/json; charset=utf-8');
 
 ini_set('display_errors', 1);

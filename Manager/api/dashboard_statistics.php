@@ -1,26 +1,15 @@
 <?php
 /**
- * ═══════════════════════════════════════════════════════════════
- * Dashboard Statistics API
- * API إحصائيات لوحة التحكم
- * ═══════════════════════════════════════════════════════════════
- * 
- * Purpose: Provides real-time statistics and chart data for dashboard
- * يوفر الإحصائيات والبيانات الحقيقية للرسوم البيانية
- * 
- * Endpoints:
- * - /statistics - General statistics (cards data)
- * - /revenue-trend - Revenue trend data (6 months)
- * - /enrollments - Enrollments by course
- * - /payment-methods - Payment methods distribution
- * - /completion-rate - Course completion rates
- * - /monthly-growth - Monthly student growth
- * 
- * Security: Session-based, Manager role only
- * ═══════════════════════════════════════════════════════════════
+ * dashboard_statistics - Protected with Central Security System
+ * محمي بنظام الحماية المركزي
  */
 
-session_start();
+require_once __DIR__ . '/api_auth.php';
+// Verify authentication
+$user = APIAuth::requireAuth();
+APIAuth::rateLimit(120, 60);
+
+
 require_once __DIR__ . '/../../config/database.php';
 
 // Set JSON header
