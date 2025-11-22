@@ -37,4 +37,4 @@
 
 <function_calls>
 <invoke name="create_file">
-<parameter name="content">http://ibdaaplatform.me/Ibdaa-Platform/
+<parameter name="content">ibdaaplatform.me
