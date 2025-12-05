@@ -16,86 +16,83 @@ $stats = [
 ?>
 
 <div class="space-y-6">
-    <!-- Welcome Banner -->
-    <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-8 text-white shadow-xl">
+    <!-- Welcome Banner - PHP Data -->
+    <div class="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-xl p-8 mb-8 text-white">
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-3xl font-bold mb-2">مرحباً <?php echo htmlspecialchars($userName); ?>! 👋</h2>
-                <p class="text-amber-100">استمر في تحقيق أهدافك التعليمية - معدلك: <?php echo $stats['gpa']; ?></p>
+                <h1 class="text-3xl font-bold mb-2">مرحباً، <?php echo htmlspecialchars($userName); ?> 👋</h1>
+                <p class="text-emerald-100 text-lg">استمر في تحقيق أهدافك التعليمية - معدلك: <?php echo number_format($stats['gpa'], 2); ?></p>
             </div>
             <div class="hidden md:block">
-                <i data-lucide="graduation-cap" class="w-24 h-24 opacity-30"></i>
+                <i data-lucide="graduation-cap" class="w-24 h-24 opacity-20"></i>
             </div>
         </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button onclick="window.location.href='?page=courses'" 
-            class="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow text-center group">
-            <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-200 transition-colors">
-                <i data-lucide="book-open" class="w-6 h-6 text-amber-600"></i>
-            </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <button onclick="location.href='?page=courses'" class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow text-center">
+            <i data-lucide="book-open" class="w-8 h-8 mx-auto mb-2 text-emerald-600"></i>
             <p class="font-semibold text-slate-800">دوراتي</p>
         </button>
-        
-        <button onclick="window.location.href='?page=assignments'" 
-            class="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow text-center group">
-            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition-colors">
-                <i data-lucide="clipboard-list" class="w-6 h-6 text-blue-600"></i>
-            </div>
+        <button onclick="location.href='?page=assignments'" class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow text-center">
+            <i data-lucide="clipboard-list" class="w-8 h-8 mx-auto mb-2 text-amber-600"></i>
             <p class="font-semibold text-slate-800">الواجبات</p>
         </button>
-        
-        <button onclick="window.location.href='?page=grades'" 
-            class="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow text-center group">
-            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-emerald-200 transition-colors">
-                <i data-lucide="star" class="w-6 h-6 text-emerald-600"></i>
-            </div>
+        <button onclick="location.href='?page=grades'" class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow text-center">
+            <i data-lucide="award" class="w-8 h-8 mx-auto mb-2 text-sky-600"></i>
             <p class="font-semibold text-slate-800">درجاتي</p>
         </button>
-        
-        <button onclick="window.location.href='?page=id-card'" 
-            class="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow text-center group">
-            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition-colors">
-                <i data-lucide="credit-card" class="w-6 h-6 text-purple-600"></i>
-            </div>
+        <button onclick="location.href='?page=id-card'" class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-shadow text-center">
+            <i data-lucide="credit-card" class="w-8 h-8 mx-auto mb-2 text-violet-600"></i>
             <p class="font-semibold text-slate-800">بطاقتي</p>
         </button>
     </div>
 
     <!-- Statistics Cards - PHP Data -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Enrolled Courses -->
+        <div class="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl shadow-xl p-6">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="book-open" class="w-8 h-8 text-amber-600"></i>
-                <span class="text-3xl font-bold text-slate-800"><?php echo $stats['enrolled_courses']; ?></span>
+                <div class="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
+                    <i data-lucide="book-open" class="w-6 h-6 text-white"></i>
+                </div>
             </div>
-            <p class="text-sm text-slate-600 font-semibold">دورة مسجلة</p>
+            <h3 class="text-4xl font-bold mb-1"><?php echo $stats['enrolled_courses']; ?></h3>
+            <p class="text-emerald-100 text-sm font-semibold">دورة مسجلة</p>
         </div>
-        
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
+
+        <!-- GPA -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border-r-4 border-sky-500">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="star" class="w-8 h-8 text-green-600"></i>
-                <span class="text-3xl font-bold text-slate-800"><?php echo number_format($stats['gpa'], 2); ?></span>
+                <div class="w-12 h-12 rounded-lg bg-sky-100 flex items-center justify-center">
+                    <i data-lucide="star" class="w-6 h-6 text-sky-600"></i>
+                </div>
             </div>
-            <p class="text-sm text-slate-600 font-semibold">المعدل التراكمي</p>
+            <h3 class="text-4xl font-bold text-slate-800 mb-1"><?php echo number_format($stats['gpa'], 2); ?></h3>
+            <p class="text-slate-500 text-sm font-semibold">المعدل التراكمي</p>
         </div>
-        
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
+
+        <!-- Attendance -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border-r-4 border-amber-500">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="calendar-check" class="w-8 h-8 text-blue-600"></i>
-                <span class="text-3xl font-bold text-slate-800"><?php echo number_format($stats['attendance_rate'], 1); ?>%</span>
+                <div class="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <i data-lucide="calendar-check" class="w-6 h-6 text-amber-600"></i>
+                </div>
             </div>
-            <p class="text-sm text-slate-600 font-semibold">نسبة الحضور</p>
+            <h3 class="text-3xl font-bold text-slate-800 mb-1"><?php echo number_format($stats['attendance_rate'], 1); ?>%</h3>
+            <p class="text-slate-500 text-sm">نسبة الحضور</p>
         </div>
-        
-        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
+
+        <!-- Completed Courses -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border-r-4 border-violet-500">
             <div class="flex items-center justify-between mb-4">
-                <i data-lucide="check-circle" class="w-8 h-8 text-purple-600"></i>
-                <span class="text-3xl font-bold text-slate-800"><?php echo $stats['completed_courses']; ?></span>
+                <div class="w-12 h-12 rounded-lg bg-violet-100 flex items-center justify-center">
+                    <i data-lucide="check-circle" class="w-6 h-6 text-violet-600"></i>
+                </div>
             </div>
-            <p class="text-sm text-slate-600 font-semibold">دورات مكتملة</p>
+            <h3 class="text-4xl font-bold text-slate-800 mb-1"><?php echo $stats['completed_courses']; ?></h3>
+            <p class="text-slate-500 text-sm font-semibold">دورات مكتملة</p>
         </div>
     </div>
 
