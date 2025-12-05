@@ -50,6 +50,10 @@ $pages = [
     'reports' => ['title' => 'التقارير', 'file' => 'reports.php', 'icon' => 'file-bar-chart'],
     'evaluations' => ['title' => 'التقييمات', 'file' => 'evaluations.php', 'icon' => 'star'],
     'support' => ['title' => 'الدعم الفني', 'file' => 'support.php', 'icon' => 'life-buoy'],
+    'idcards' => ['title' => 'البطاقات الطلابية', 'file' => 'idcards.php', 'icon' => 'credit-card'],
+    'ai-images' => ['title' => 'توليد الصور AI', 'file' => 'ai-images.php', 'icon' => 'sparkles'],
+    'ai-charts' => ['title' => 'رسوم بيانية AI', 'file' => 'ai-charts.php', 'icon' => 'bar-chart-3'],
+    'certificate-designer' => ['title' => 'مصمم الشهادات', 'file' => 'certificate-designer.php', 'icon' => 'pen-tool'],
     
     // الإعدادات
     'settings' => ['title' => 'الإعدادات', 'file' => 'settings.php', 'icon' => 'settings'],
