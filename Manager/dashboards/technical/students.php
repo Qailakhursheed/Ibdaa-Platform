@@ -324,7 +324,7 @@ function filterStudents() {
 }
 
 function viewStudent(studentId) {
-    window.location.href = `student_details.php?id=${studentId}`;
+    window.location.href = `?page=students&id=${studentId}`;
 }
 
 function editStudent(studentId) {

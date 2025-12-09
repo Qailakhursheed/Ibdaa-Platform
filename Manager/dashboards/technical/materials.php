@@ -220,7 +220,7 @@ function filterMaterials() {
 }
 
 function viewMaterial(materialId) {
-    window.location.href = `material_details.php?id=${materialId}`;
+    window.location.href = `?page=materials&id=${materialId}`;
 }
 
 function downloadMaterial(filePath) {

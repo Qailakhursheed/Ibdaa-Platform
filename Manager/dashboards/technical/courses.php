@@ -339,7 +339,7 @@ function filterCourses() {
 }
 
 function viewCourse(courseId) {
-    window.location.href = `course_details.php?id=${courseId}`;
+    window.location.href = `?page=courses&id=${courseId}`;
 }
 
 function editCourse(courseId) {

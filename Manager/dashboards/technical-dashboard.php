@@ -259,7 +259,7 @@ window.CURRENT_USER = {
 document.addEventListener('DOMContentLoaded', function() {
     // Load dashboard integration script
     const script = document.createElement('script');
-    script.src = '../js/dashboard-integration.js';
+    script.src = '<?php echo $managerBaseUrl; ?>/js/dashboard-integration.js';
     script.onload = function() {
         console.log('✅ Dashboard Integration Loaded');
     };

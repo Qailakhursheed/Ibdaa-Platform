@@ -140,11 +140,11 @@ $trainers = $technicalHelper->getAllTrainers();
 
 <script>
 function viewTrainer(trainerId) {
-    window.location.href = `trainer_details.php?id=${trainerId}`;
+    window.location.href = `?page=trainers&id=${trainerId}`;
 }
 
 function evaluateTrainer(trainerId) {
-    window.location.href = `evaluations.php?trainer_id=${trainerId}`;
+    window.location.href = `?page=evaluations&trainer_id=${trainerId}`;
 }
 
 function openAddTrainer() {
